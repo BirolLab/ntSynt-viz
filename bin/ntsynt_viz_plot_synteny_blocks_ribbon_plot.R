@@ -152,7 +152,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   #geom_seq_label(aes(label = seq_id), vjust = 1.1, size = 4) + # Can add seq labels if desired
   theme(axis.text = element_text(size = 25, face = "italic"),
         legend.position = "bottom",
-        legend.text = element_text(size = 15, margin = margin(r=10))) +
+        legend.text = element_text(size = 15, margin = margin(r=10, l=3))) +
   scale_fill_manual(values = colours,
                     breaks = sequences_filt) +
   scale_colour_manual(values = colours,

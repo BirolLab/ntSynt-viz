@@ -96,7 +96,7 @@ main plot formatting arguments:
   --no-arrow            Only used with --normalize; do not draw arrows indicating reverse-complementation
 
 block filtering arguments:
-  --indel INDEL         Indel size threshold [50000]
+  --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]
   --length LENGTH       Minimum synteny block length [100000]
   --seq_length SEQ_LENGTH
                         Minimum sequence length [500000]
@@ -135,8 +135,8 @@ ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --n
 
 For more information about the output files from ntSynt-viz, check out our [wiki page](https://github.com/BirolLab/ntSynt-viz/wiki).
 
-## Using ntSynt-viz with synteny blocks from tools other than ntSynt
-To visualize synteny blocks from synteny block detection tools other than ntSynt, the synteny blocks simply need to be converted to the straightforward [ntSynt format](https://github.com/BirolLab/ntsynt?tab=readme-ov-file#output-files). For convenience, we also provide some scripts to do this conversion in the `conversion_scripts` directory.
+## Using ntSynt-viz with pangenome graphs or synteny blocks from tools other than ntSynt
+To visualize synteny information in pangenome graphs or from synteny block detection tools other than ntSynt, the synteny blocks simply need to be converted to the straightforward [ntSynt format](https://github.com/BirolLab/ntsynt?tab=readme-ov-file#output-files). For convenience, we also provide some scripts to do this conversion in the `conversion_scripts` directory.
 
 ## Citing <a name=citing></a>
 

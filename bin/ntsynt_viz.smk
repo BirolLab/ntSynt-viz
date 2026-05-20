@@ -83,10 +83,18 @@ def get_first_asm_and_fai(orders, name_conversion, fai_list):
     raise ValueError(f"Expected FAI for assembly {asm_name} not found. FAI list: {fai_list}")
 
 rule all:
-    input: f"{prefix}_ribbon-plot.png" if format_img == "png" else f"{prefix}_ribbon-plot.pdf" 
+    input: {
+        "png": f"{prefix}_ribbon-plot.png",
+        "pdf": f"{prefix}_ribbon-plot.pdf",
+        "svg": f"{prefix}_ribbon-plot.svg",
+    }[format_img]
 
 rule gggenomes_ribbon_plot_tree:
-    input: f"{prefix}_ribbon-plot_tree.png" if format_img == "png" else f"{prefix}_ribbon-plot_tree.pdf"
+    input: {
+        "png": f"{prefix}_ribbon-plot_tree.png",
+        "pdf": f"{prefix}_ribbon-plot_tree.pdf",
+        "svg": f"{prefix}_ribbon-plot_tree.svg",
+    }[format_img]
 
 rule renaming:
     input: 

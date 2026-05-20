@@ -149,9 +149,11 @@ def main():
     if args.n:
         cmd += " -n "
     cmd += f"-p {target}"
-    print(cmd)
+    print(cmd, flush=True)
 
     subprocess.check_call(shlex.split(cmd))
+    
+    print("ntSynt-viz pipeline completed successfully!", flush=True)
 
 if __name__ == "__main__":
     main()

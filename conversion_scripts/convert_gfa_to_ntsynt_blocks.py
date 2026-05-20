@@ -224,7 +224,7 @@ def main():
     # If merging collinear, check that the script is available on the PATH
     if not args.no_merge_collinear:
         if shutil.which("ntsynt_merge_collinear.py") is None:
-            raise ValueError("The --merge-collinear option requires the ntsynt_merge_collinear.py script from ntSynt v1.0.6+"
+            raise ValueError("The --merge-collinear option requires the ntsynt_merge_collinear.py script from ntSynt v1.0.7+"
                              "to be available on your PATH.\n"
                              "Please ensure it is installed and try again.\nExiting..")
     

@@ -40,8 +40,8 @@ parser$add_argument("--ratio",
 parser$add_argument("-p", "--prefix",
                     help = "Output prefix for PNG image (default synteny_gggenomes_plot)", required = FALSE,
                     default = "synteny_gggenomes_plot")
-parser$add_argument("--format", help = "Output format for image (png or pdf)", required = FALSE,
-                    default = "png", choices = c("png", "pdf"))
+parser$add_argument("--format", help = "Output format for image (png, pdf or svg)", required = FALSE,
+                    default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 
 args <- parser$parse_args()
@@ -263,6 +263,10 @@ if (args$format == "pdf") {
   ggsave(paste(args$prefix, ".pdf", sep = ""), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
   cat(paste("Plot saved:", paste(args$prefix, ".pdf", sep = ""), "\n", sep = " "))
+} else if (args$format == "svg") {
+  ggsave(paste(args$prefix, ".svg", sep = ""), plots,
+         units = "cm", width = args$width, height = args$height, bg = "white")
+  cat(paste("Plot saved:", paste(args$prefix, ".svg", sep = ""), "\n", sep = " "))
 } else {
   png(paste(args$prefix, ".png", sep = ""), units = "cm", width = args$width, height = args$height,
       res = 300, bg = "white")

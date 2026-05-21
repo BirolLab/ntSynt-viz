@@ -82,11 +82,23 @@ def get_first_asm_and_fai(orders, name_conversion, fai_list):
             return target, fai
     raise ValueError(f"Expected FAI for assembly {asm_name} not found. FAI list: {fai_list}")
 
+output_files = {
+        "png": f"{prefix}_ribbon-plot.png",
+        "pdf": f"{prefix}_ribbon-plot.pdf",
+        "svg": f"{prefix}_ribbon-plot.svg",
+    }
+
 rule all:
-    input: f"{prefix}_ribbon-plot.png" if format_img == "png" else f"{prefix}_ribbon-plot.pdf" 
+    input: output_files[format_img]
+
+ouput_files_tree = {
+        "png": f"{prefix}_ribbon-plot_tree.png",
+        "pdf": f"{prefix}_ribbon-plot_tree.pdf",
+        "svg": f"{prefix}_ribbon-plot_tree.svg",
+    }
 
 rule gggenomes_ribbon_plot_tree:
-    input: f"{prefix}_ribbon-plot_tree.png" if format_img == "png" else f"{prefix}_ribbon-plot_tree.pdf"
+    input: ouput_files_tree[format_img]
 
 rule renaming:
     input: 
@@ -243,13 +255,13 @@ rule ribbon_plot:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = f"{prefix}_ribbon-plot.png" if format_img == "png" else f"{prefix}_ribbon-plot.pdf"
+        out_img = output_files[format_img]
     params:
         prefix = f"{prefix}_ribbon-plot",
         ratio = ribbon_ratio,
         scale = scale,
         centromeres = f"--centromeres {centromeres}" if centromeres is not None else "",
-        out_img_format = "png" if format_img == "png" else "pdf",
+        out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else ""
@@ -268,13 +280,13 @@ rule ribbon_plot_tree:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = f"{prefix}_ribbon-plot_tree.png" if format_img == "png" else f"{prefix}_ribbon-plot_tree.pdf"
+        out_img = ouput_files_tree[format_img]
     params:
         prefix = f"{prefix}_ribbon-plot_tree",
         ratio = ribbon_ratio,
         scale = scale,
         centromeres = f"--centromeres {centromeres}" if centromeres is not None else "",
-        out_img_format = "png" if format_img == "png" else "pdf",
+        out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else ""

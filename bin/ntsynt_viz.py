@@ -82,7 +82,7 @@ def main():
     output_group.add_argument("--prefix", help="Prefix for output files [ntSynt-viz_ribbon-plot]",
                               required=False, type=str, default="ntSynt-viz_ribbon-plot")
     output_group.add_argument("--format", help="Output format of plot [png]",
-                        required=False, choices=["png", "pdf"], default="png")
+                        required=False, choices=["png", "pdf", "svg"], default="png")
     output_group.add_argument("--scale", help="Length of scale bar in bases [100e6]", required=False, type=float,
                         default=100e6)
     output_group.add_argument("--height", help="Height of plot in cm [20]", required=False, type=int, default=20)
@@ -149,9 +149,11 @@ def main():
     if args.n:
         cmd += " -n "
     cmd += f"-p {target}"
-    print(cmd)
+    print(cmd, flush=True)
 
     subprocess.check_call(shlex.split(cmd))
+
+    print("ntSynt-viz pipeline completed successfully!", flush=True)
 
 if __name__ == "__main__":
     main()

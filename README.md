@@ -47,6 +47,7 @@ These features ensure that the output ribbon plots (powered by [gggenomes](https
   * [scales](https://scales.r-lib.org/)
   * [stringr](https://stringr.tidyverse.org/)
   * [ggplot2](https://ggplot2.tidyverse.org)
+  * [svglite](https://cran.r-project.org/web/packages/svglite/index.html)
 
 ### Installing ntSynt-viz using conda <a name=install></a>
 ```
@@ -65,7 +66,8 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--prefix PREFIX] [--format {png,pdf}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
+                     [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n]
+                     [-v]
 
 Visualizing multi-genome synteny
 
@@ -105,7 +107,8 @@ block filtering arguments:
 
 output arguments:
   --prefix PREFIX       Prefix for output files [ntSynt-viz_ribbon-plot]
-  --format {png,pdf}    Output format of plot [png]
+  --format {png,pdf,svg}
+                        Output format of plot [png]
   --scale SCALE         Length of scale bar in bases [100e6]
   --height HEIGHT       Height of plot in cm [20]
   --width WIDTH         Width of plot in cm [50]

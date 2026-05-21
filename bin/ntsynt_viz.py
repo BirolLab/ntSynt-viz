@@ -152,7 +152,7 @@ def main():
     print(cmd, flush=True)
 
     subprocess.check_call(shlex.split(cmd))
-    
+
     print("ntSynt-viz pipeline completed successfully!", flush=True)
 
 if __name__ == "__main__":

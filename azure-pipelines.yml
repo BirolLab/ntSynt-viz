@@ -27,7 +27,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite
     displayName: Install dependencies
 
   - script: |
@@ -46,21 +46,31 @@ jobs:
       export PATH=$(pwd)/bin:$PATH
       cd tests
       ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tree great-apes.mt-tree.nwk --name_conversion great-apes.name-conversions.tsv --normalize --prefix great-apes_ribbon-plots --ribbon_adjust 0.14 --scale 1e9
-    displayName: Run Example 1 test
+    displayName: Run Example 1 test (PNG output)
 
   - script: |
       source activate ntsynt_viz_ci
       export PATH=$(pwd)/bin:$PATH
       cd tests
-      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens --format svg --force
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens --format pdf --force
       diff -q great-apes_ribbon-plots_no-tree_est-distances.order.tsv expected/great-apes_ribbon-plots_no-tree_est-distances.order.tsv
-    displayName: Run Example 2 test
+    displayName: Run Example 2 test (PDF output)
+
+  - script: |
+      source activate ntsynt_viz_ci
+      export PATH=$(pwd)/bin:$PATH
+      cd tests
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 2e9 --target-genome Pan_paniscus --format svg --force
+    displayName: Run Example 3 test (SVG output)
 
   - publish: tests/great-apes_ribbon-plots_ribbon-plot_tree.png
     artifact: Example1
 
-  - publish: tests/great-apes_ribbon-plots_no-tree_ribbon-plot.svg
+  - publish: tests/great-apes_ribbon-plots_no-tree_ribbon-plot.pdf
     artifact: Example2
+
+  - publish: tests/great-apes_ribbon-plots_no-tree_ribbon-plot.svg
+    artifact: Example3
 
 
 - job:
@@ -89,7 +99,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite
     displayName: Install dependencies
 
   - script: |
@@ -107,13 +117,20 @@ jobs:
       source activate ntsynt_viz_ci
       export PATH=$(pwd)/bin:$PATH
       cd tests
-      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tree great-apes.mt-tree.nwk --name_conversion great-apes.name-conversions.tsv --normalize --prefix great-apes_ribbon-plots --ribbon_adjust 0.14 --scale 1e9
-    displayName: Run Example 1 test
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tree great-apes.mt-tree.nwk --name_conversion great-apes.name-conversions.tsv --normalize --prefix great-apes_ribbon-plots --ribbon_adjust 0.14 --scale 1e9 --format png
+    displayName: Run Example 1 test (PNG output)
 
   - script: |
       source activate ntsynt_viz_ci
       export PATH=$(pwd)/bin:$PATH
       cd tests
-      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens --force
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens --force --format pdf
       diff -q great-apes_ribbon-plots_no-tree_est-distances.order.tsv expected/great-apes_ribbon-plots_no-tree_est-distances.order.tsv
-    displayName: Run Example 2 test
+    displayName: Run Example 2 test (PDF output)
+
+  - script: |
+      source activate ntsynt_viz_ci
+      export PATH=$(pwd)/bin:$PATH
+      cd tests
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 2e9 --target-genome Pan_paniscus --format svg --force
+    displayName: Run Example 3 test (SVG output)

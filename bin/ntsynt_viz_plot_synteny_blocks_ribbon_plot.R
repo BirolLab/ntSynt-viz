@@ -10,7 +10,8 @@ suppressPackageStartupMessages({
   library(ggpubr)
   library(stringr)
   library(gggenomes)
-  library(tidyr)})
+  library(tidyr)
+  library(svglite)})
 
 # Example script for generating ntSynt synteny ribbon plots using gggenomes
 

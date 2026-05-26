@@ -44,6 +44,7 @@ parser$add_argument("-p", "--prefix",
 parser$add_argument("--format", help = "Output format for image (png, pdf or svg)", required = FALSE,
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
+parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
 
 args <- parser$parse_args()
 
@@ -270,7 +271,7 @@ if (args$format == "pdf") {
   cat(paste("Plot saved:", paste(args$prefix, ".svg", sep = ""), "\n", sep = " "))
 } else {
   png(paste(args$prefix, ".png", sep = ""), units = "cm", width = args$width, height = args$height,
-      res = 300, bg = "white")
+      res = args$dpi, bg = "white")
   print(plots)
   dev.off()
   cat(paste("Plot saved:", paste(args$prefix, ".png", sep = ""), "\n", sep = " "))

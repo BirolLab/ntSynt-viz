@@ -27,6 +27,7 @@ target_genome = config["target_genome"] if "target_genome" in config else False
 haplotypes = config["haplotypes"] if "haplotypes" in config else []
 keep = " ".join(config["keep"]) if "keep" in config else []
 min_seq_length = config["min_seq_length"] if "min_seq_length" in config else 500000
+res = config["dpi"] if "dpi" in config else 300
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
@@ -264,11 +265,12 @@ rule ribbon_plot:
         out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
-        haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else ""
+        haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
+        resolution = f"--dpi {res}" if format_img == "png" else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
 
 rule ribbon_plot_tree:
     input: 
@@ -289,8 +291,9 @@ rule ribbon_plot_tree:
         out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
-        haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else ""
+        haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
+        resolution = f"--dpi {res}" if format_img == "png" else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"

@@ -87,6 +87,8 @@ def main():
                         default=100e6)
     output_group.add_argument("--height", help="Height of plot in cm [20]", required=False, type=int, default=20)
     output_group.add_argument("--width", help="Width of plot in cm [50]", required=False, type=int, default=50)
+    output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
+                              required=False, type=int, default=300)
     main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",
                         action="store_true")
@@ -139,6 +141,8 @@ def main():
         cmd += f"haplotypes={args.haplotypes} "
     if args.keep:
         cmd += f"keep=\"{args.keep}\" "
+    if args.format == "png":
+        cmd += f"dpi={args.dpi} "
     if args.tree:
         cmd += f"tree={args.tree} "
         target = "gggenomes_ribbon_plot_tree"

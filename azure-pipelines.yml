@@ -13,7 +13,8 @@ jobs:
 
   - script: |
       mkdir -p ~/miniforge3
-      curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh  -o ~/miniforge3/miniforge.sh
+      # May 2026 - CI slowed down significantly with mamba 2.6.0+, so using older release for now
+      curl -L https://github.com/conda-forge/miniforge/releases/download/26.1.0-0/Miniforge3-Linux-x86_64.sh  -o ~/miniforge3/miniforge.sh
       bash ~/miniforge3/miniforge.sh -b -u -p ~/miniforge3
       rm -rf  ~/miniforge3/miniforge.sh
       ~/miniforge3/bin/conda init bash
@@ -85,7 +86,8 @@ jobs:
 
   - script: |
       mkdir -p ~/miniforge3
-      curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-x86_64.sh  -o ~/miniforge3/miniforge.sh
+      # May 2026 - CI slowed down significantly with mamba 2.6.0+, so using older release for now
+      curl -L https://github.com/conda-forge/miniforge/releases/download/26.1.0-0/Miniforge3-MacOSX-x86_64.sh  -o ~/miniforge3/miniforge.sh
       bash ~/miniforge3/miniforge.sh -b -u -p ~/miniforge3
       rm -rf  ~/miniforge3/miniforge.sh
       ~/miniforge3/bin/conda init bash

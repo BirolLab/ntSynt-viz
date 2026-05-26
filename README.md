@@ -66,8 +66,8 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n]
-                     [-v]
+                     [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST]
+                     [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
 
@@ -84,8 +84,9 @@ main plot formatting arguments:
                         TSV for converting names in the blocks TSV (old -> new). IMPORTANT: new names cannot have spaces. If you want to have spaces in the final ribbon
                         plot, use the special character '_'. All underscores in the new name will be converted to spaces.
   --tree TREE           User-input tree file in newick format. If specified, this tree will be plotted next to the output ribbon plot, and used for ordering the
-                        assemblies. The names in the newick file must match the new names if --name_conversion is specified, or the genome file names in the synteny blocks
-                        input file otherwise. If not specified, the synteny blocks will be used to estimate pairwise distances for the genome ordering and associated tree.
+                        assemblies. The names in the newick file must match the new names if --name_conversion is specified, or the genome file names in the synteny
+                        blocks input file otherwise. If not specified, the synteny blocks will be used to estimate pairwise distances for the genome ordering and
+                        associated tree.
   --target-genome TARGET_GENOME
                         Target genome. If specified, this genome will be at the top of the ribbon plot, with ribbons coloured based on its chromosomes and (if applicable)
                         other chromosomes normalized to it. If not specified, the top genome will be arbitrary.
@@ -112,6 +113,7 @@ output arguments:
   --scale SCALE         Length of scale bar in bases [100e6]
   --height HEIGHT       Height of plot in cm [20]
   --width WIDTH         Width of plot in cm [50]
+  --dpi DPI             Resolution of output plot - png output only [300]
   --ribbon_adjust RIBBON_ADJUST
                         Ratio for adjusting spacing beside ribbon plot. Increase if ribbon plot labels are cut off, and decrease to reduce the white space to the left of
                         the ribbon plot [0.1]

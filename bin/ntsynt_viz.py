@@ -97,7 +97,8 @@ def main():
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
     output_group.add_argument("--annotate-genome-info",
-                              help="Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot",
+                              help="Add annotations about number of sequences "
+                                  "and genome size to the right of each genome in the ribbon plot",
                               action="store_true")
     main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",

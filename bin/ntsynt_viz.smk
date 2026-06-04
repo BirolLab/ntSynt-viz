@@ -29,6 +29,7 @@ keep = " ".join(config["keep"]) if "keep" in config else []
 min_seq_length = config["min_seq_length"] if "min_seq_length" in config else 500000
 res = config["dpi"] if "dpi" in config else 300
 orders = config.get("order", [])
+annotate_genomes = config.get("annotate_genomes", False)
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
@@ -271,10 +272,11 @@ rule ribbon_plot:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
+        annotate_bins = "--annotate-bins" if annotate_genomes else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_bins}"
 
 rule ribbon_plot_tree:
     input: 
@@ -297,7 +299,8 @@ rule ribbon_plot_tree:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
+        annotate_bins = "--annotate-bins" if annotate_genomes else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_bins}"

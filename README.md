@@ -66,7 +66,7 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--no-arrow]
+                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--no-arrow]  [--annotate-genomes]
                      [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
@@ -101,7 +101,7 @@ main plot formatting arguments:
   --no-arrow            Only used with --normalize; do not draw arrows indicating reverse-complementation
 
 block filtering arguments:
-  --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]
+  --indel INDEL         Indel size threshold [50000]
   --length LENGTH       Minimum synteny block length [100000]
   --seq_length SEQ_LENGTH
                         Minimum sequence length [500000]
@@ -114,8 +114,9 @@ output arguments:
                         Output format of plot [png]
   --scale SCALE         Length of scale bar in bases [100e6]
   --height HEIGHT       Height of plot in cm [20]
-  --width WIDTH         Width of plot in cm [50]
+  --width WIDTH         Width of plot in cm [55]
   --dpi DPI             Resolution of output plot - png output only [300]
+  --annotate-genomes    Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
   --ribbon_adjust RIBBON_ADJUST
                         Ratio for adjusting spacing beside ribbon plot. Increase if ribbon plot labels are cut off, and decrease to reduce the white space to
                         the left of the ribbon plot [0.1]

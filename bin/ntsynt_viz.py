@@ -93,9 +93,12 @@ def main():
     output_group.add_argument("--scale", help="Length of scale bar in bases [100e6]", required=False, type=float,
                         default=100e6)
     output_group.add_argument("--height", help="Height of plot in cm [20]", required=False, type=int, default=20)
-    output_group.add_argument("--width", help="Width of plot in cm [50]", required=False, type=int, default=50)
+    output_group.add_argument("--width", help="Width of plot in cm [55]", required=False, type=int, default=55)
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
+    output_group.add_argument("--annotate-genomes",
+                              help="Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot",
+                              action="store_true")
     main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",
                         action="store_true")
@@ -155,6 +158,8 @@ def main():
         cmd += f"dpi={args.dpi} "
     if args.order:
         cmd += f"order={args.order} "
+    if args.annotate_genomes:
+        cmd += "annotate_genomes=True "
     if args.tree:
         cmd += f"tree={args.tree} "
         target = "gggenomes_ribbon_plot_tree"

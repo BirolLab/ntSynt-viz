@@ -29,7 +29,7 @@ keep = " ".join(config["keep"]) if "keep" in config else []
 min_seq_length = config["min_seq_length"] if "min_seq_length" in config else 500000
 res = config["dpi"] if "dpi" in config else 300
 orders = config.get("order", [])
-annotate_genomes = config.get("annotate_genomes", False)
+annotate_genomes = config.get("annotate_genome_info", False)
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"

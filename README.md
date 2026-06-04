@@ -116,7 +116,7 @@ output arguments:
   --height HEIGHT       Height of plot in cm [20]
   --width WIDTH         Width of plot in cm [55]
   --dpi DPI             Resolution of output plot - png output only [300]
-  --annotate-genomes    Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
+  --annotate-genome-info    Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
   --ribbon_adjust RIBBON_ADJUST
                         Ratio for adjusting spacing beside ribbon plot. Increase if ribbon plot labels are cut off, and decrease to reduce the white space to
                         the left of the ribbon plot [0.1]

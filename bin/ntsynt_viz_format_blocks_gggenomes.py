@@ -164,6 +164,15 @@ def find_valid_blocks(block_filename, length_threshold, keep_dict, fais, seq_len
         raise ValueError("No valid sequences or links found - check that you are "
                          "using the correct assembly and chromosome naming in --keep.")
 
+    # If no --keep list is provided, also keep sequences not in synteny blocks that
+    # are longer than the seq_length_threshold
+    if not keep_dict:
+        for genome in fais:
+            for chrom in fais[genome]:
+                if fais[genome][chrom] >= seq_length_threshold and \
+                    chrom not in keep_seqs.get(genome, set()):
+                    keep_seqs[genome].add(chrom)
+
     return keep_blocks, keep_seqs
 
 

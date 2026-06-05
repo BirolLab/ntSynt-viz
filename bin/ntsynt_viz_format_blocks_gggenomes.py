@@ -82,7 +82,9 @@ def make_sequence_file(fais, prefix, orientations=None, keep=None):
         fout.write("bin_id\tseq_id\tlength\trelative_orientation\n")
         for genome_name in fais:
             for chrom_name, length in fais[genome_name].items():
+                print(genome_name, chrom_name)
                 if valid_print_sequence(genome_name, chrom_name, keep):
+                    print("Valid")
                     relative_ori = f"\t{orientations_dict[genome_name][chrom_name]}" \
                         if orientations_dict and genome_name in orientations_dict else f"\t{PLACEHOLDER_CHAR}"
                     fout.write(f"{genome_name}\t{chrom_name}\t{length}{relative_ori}\n")
@@ -164,6 +166,16 @@ def find_valid_blocks(block_filename, length_threshold, keep_dict, fais, seq_len
         raise ValueError("No valid sequences or links found - check that you are "
                          "using the correct assembly and chromosome naming in --keep.")
 
+    # If no --keep list is provided, also keep sequences not in synteny blocks that
+    # are longer than the seq_length_threshold
+    if not keep_dict:
+        for genome in fais:
+            for chrom in fais[genome]:
+                if fais[genome][chrom] >= seq_length_threshold and \
+                    chrom not in keep_seqs.get(genome, set()):
+                    keep_seqs[genome].add(chrom)
+
+    print(keep_seqs)
     return keep_blocks, keep_seqs
 
 

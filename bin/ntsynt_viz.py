@@ -79,9 +79,12 @@ def main():
     main_formatting_group.add_argument("--haplotypes", help="File listing haplotype assembly names: TSV, "
                         "maternal/paternal assembly file names separated by tabs.",
                         required=False, type=str)
-    main_formatting_group.add_argument("--order", help="Optional file specifying the order of genomes in the ribbon plot. "\
+    main_formatting_group.add_argument("--order",
+                                       help="Optional file specifying the order of genomes "\
+                                           "in the ribbon plot. "\
                                        "If supplied, will override synteny distance-based ordering. "\
-                                       "If --tree supplied, the ordering must be compatible with the phylogenetic tree.",
+                                       "If --tree supplied, the ordering must be compatible "\
+                                           "with the phylogenetic tree.",
                                        required=False, type=str)
     output_group.add_argument("--prefix", help="Prefix for output files [ntSynt-viz_ribbon-plot]",
                               required=False, type=str, default="ntSynt-viz_ribbon-plot")

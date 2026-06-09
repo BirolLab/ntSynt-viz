@@ -64,7 +64,7 @@ jobs:
       ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 2e9 --target-genome Pan_paniscus --format svg --force
     displayName: Run Example 3 test (SVG output)
 
-   - script: |
+  - script: |
       source activate ntsynt_viz_ci
       export PATH=$(pwd)/bin:$PATH
       cd tests

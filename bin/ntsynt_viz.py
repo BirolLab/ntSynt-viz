@@ -79,6 +79,10 @@ def main():
     main_formatting_group.add_argument("--haplotypes", help="File listing haplotype assembly names: TSV, "
                         "maternal/paternal assembly file names separated by tabs.",
                         required=False, type=str)
+    main_formatting_group.add_argument("--order", help="Optional file specifying the order of genomes in the ribbon plot. "\
+                                       "If supplied, will override synteny distance-based ordering. "\
+                                       "If --tree supplied, the ordering must be compatible with the phylogenetic tree.",
+                                       required=False, type=str)
     output_group.add_argument("--prefix", help="Prefix for output files [ntSynt-viz_ribbon-plot]",
                               required=False, type=str, default="ntSynt-viz_ribbon-plot")
     output_group.add_argument("--format", help="Output format of plot [png]",
@@ -143,6 +147,8 @@ def main():
         cmd += f"keep=\"{args.keep}\" "
     if args.format == "png":
         cmd += f"dpi={args.dpi} "
+    if args.order:
+        cmd += f"order={args.order} "
     if args.tree:
         cmd += f"tree={args.tree} "
         target = "gggenomes_ribbon_plot_tree"

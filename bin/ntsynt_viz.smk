@@ -28,6 +28,7 @@ haplotypes = config["haplotypes"] if "haplotypes" in config else []
 keep = " ".join(config["keep"]) if "keep" in config else []
 min_seq_length = config["min_seq_length"] if "min_seq_length" in config else 500000
 res = config["dpi"] if "dpi" in config else 300
+orders = config.get("order", [])
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
@@ -161,8 +162,11 @@ rule orders:
         prefix = f"{prefix}_est-distances",
         tree_flag = "--tree" if tree is not None else "",
         haplotypes = f"--haplotypes {haplotypes}" if haplotypes else ""
-    shell:
-        "ntsynt_viz_output_orders.py -p {params.prefix} {params.tree_flag} {params.haplotypes}"
+    run:
+        if orders:
+            shell("ln -sf {orders} {output.orders}")
+        else:
+            shell("ntsynt_viz_output_orders.py -p {params.prefix} {params.tree_flag} {params.haplotypes}")
 
 rule nudges:
     input: 

@@ -64,6 +64,13 @@ jobs:
       ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 2e9 --target-genome Pan_paniscus --format svg --force
     displayName: Run Example 3 test (SVG output)
 
+  - script: |
+      source activate ntsynt_viz_ci
+      export PATH=$(pwd)/bin:$PATH
+      cd tests
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_tree_order --ribbon_adjust 0.15 --scale 2e9 --order test_order.tsv --format png --force
+    displayName: Run Example 4 test (PNG output) 
+
   - publish: tests/great-apes_ribbon-plots_ribbon-plot_tree.png
     artifact: Example1
 
@@ -72,6 +79,9 @@ jobs:
 
   - publish: tests/great-apes_ribbon-plots_no-tree_ribbon-plot.svg
     artifact: Example3
+
+  - publish: tests/great-apes_ribbon-plots_tree_order_ribbon-plot.png
+    artifact: Example4
 
 
 - job:

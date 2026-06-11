@@ -116,7 +116,7 @@ def main():
 
     if args.name_conversion:
         check_name_conversion(args.name_conversion, parser)
-        
+
     if args.target_genome and args.order:
         parser.error("Please specify only one of --target-genome or --order, not both.")
 

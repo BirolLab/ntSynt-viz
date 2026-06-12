@@ -54,7 +54,7 @@ jobs:
       export PATH=$(pwd)/bin:$PATH
       cd tests
       ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome GCA_000001405.15_GRCh38_genomic.chr-only.nums.fa  --format pdf --force
-      diff -q great-apes_ribbon-plots_no-tree_est-distances.order.tsv expected/great-apes_ribbon-plots_no-tree_est-distances.order.tsv
+      diff -q great-apes_ribbon-plots_no-tree_est-distances.order.tsv expected/great-apes_ribbon-plots_no-tree_est-distances_no-names.order.tsv
     displayName: Run Example 2 test (PDF output)
 
   - script: |

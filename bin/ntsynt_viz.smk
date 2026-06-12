@@ -7,7 +7,6 @@ import os
 # Parameters
 synteny_blocks = config.get("blocks", None)
 name_conversion = config.get("name_conversion", None)
-name_conversion = None if name_conversion == "None" else name_conversion
 prefix = config.get("prefix", "ntSynt_gggenomes")
 indel_threshold = config.get("indel_threshold", 50000)
 min_len = config.get("min_length", 50000)
@@ -29,7 +28,7 @@ keep = " ".join(config.get("keep", []))
 min_seq_length = config.get("min_seq_length", 500000)
 res = config.get("dpi", 300)
 orders = config.get("order", [])
-annotate_genomes = config.get("annotate_genome_info", False)
+annotate_genome_info = config.get("annotate_genome_info", False)
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
@@ -272,11 +271,11 @@ rule ribbon_plot:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
-        annotate_bins = "--annotate-bins" if annotate_genomes else "",
+        annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_bins}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
 
 rule ribbon_plot_tree:
     input: 
@@ -299,8 +298,8 @@ rule ribbon_plot_tree:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
-        annotate_bins = "--annotate-bins" if annotate_genomes else "",
+        annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_bins}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"

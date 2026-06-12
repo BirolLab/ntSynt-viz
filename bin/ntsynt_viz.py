@@ -93,9 +93,13 @@ def main():
     output_group.add_argument("--scale", help="Length of scale bar in bases [100e6]", required=False, type=float,
                         default=100e6)
     output_group.add_argument("--height", help="Height of plot in cm [20]", required=False, type=int, default=20)
-    output_group.add_argument("--width", help="Width of plot in cm [50]", required=False, type=int, default=50)
+    output_group.add_argument("--width", help="Width of plot in cm [55]", required=False, type=int, default=55)
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
+    output_group.add_argument("--annotate-genome-info",
+                              help="Add annotations about number of sequences "
+                                  "and genome size to the right of each genome in the ribbon plot",
+                              action="store_true")
     main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",
                         action="store_true")
@@ -128,7 +132,6 @@ def main():
             f"--config " \
             f"prefix={args.prefix} " \
             f"blocks={args.blocks} " \
-            f"name_conversion={args.name_conversion} " \
             f"fai='{args.fais}' " \
             f"ribbon_ratio={args.ribbon_adjust} " \
             f"scale={args.scale} " \
@@ -139,6 +142,8 @@ def main():
             f"width={args.width} " \
             f"min_seq_length={args.seq_length} "
 
+    if args.name_conversion:
+        cmd += f"name_conversion={args.name_conversion} "
     if args.centromeres:
         cmd += f"centromeres={args.centromeres} "
     if args.normalize:
@@ -155,6 +160,8 @@ def main():
         cmd += f"dpi={args.dpi} "
     if args.order:
         cmd += f"order={args.order} "
+    if args.annotate_genome_info:
+        cmd += "annotate_genome_info=True "
     if args.tree:
         cmd += f"tree={args.tree} "
         target = "gggenomes_ribbon_plot_tree"

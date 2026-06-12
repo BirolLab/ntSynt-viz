@@ -5,30 +5,30 @@ import os
 
 
 # Parameters
-synteny_blocks = config["blocks"] if "blocks" in config else None
-name_conversion = config["name_conversion"] if "name_conversion" in config else None
-name_conversion = None if name_conversion == "None" else name_conversion
-prefix = config["prefix"] if "prefix" in config else "ntSynt_gggenomes"
-indel_threshold = config["indel_threshold"] if "indel_threshold" in config else 50000
-min_len = config["min_length"] if "min_length" in config else 50000
-fais = config["fai"] if "fai" in config else None
-ribbon_ratio = config["ribbon_ratio"] if "ribbon_ratio" in config else 0.1
-cladogram_ratio = config["cladogram_adjust"] if "cladogram_adjust" in config else 0.1
-scale = config["scale"] if "scale" in config else 1e9
-centromeres = config["centromeres"] if "centromeres" in config else None
-normalize = config["normalize"] if "normalize" in config else False
+synteny_blocks = config.get("blocks", None)
+name_conversion = config.get("name_conversion", None)
+prefix = config.get("prefix", "ntSynt_gggenomes")
+indel_threshold = config.get("indel_threshold", 50000)
+min_len = config.get("min_length", 50000)
+fais = config.get("fai", None)
+ribbon_ratio = config.get("ribbon_ratio", 0.1)
+cladogram_ratio = config.get("cladogram_adjust", 0.1)
+scale = config.get("scale", 1e9)
+centromeres = config.get("centromeres", None)
+normalize = config.get("normalize", False)
 blocks_no_suffix = os.path.basename(synteny_blocks).removesuffix(".tsv")
-tree = config["tree"] if "tree" in config else None
-format_img = config["format"] if "format" in config else "png"
-plot_height = config["height"] if "height" in config else 20
-plot_width = config["width"] if "width" in config else 50
-no_arrow = config["no_arrow"] if "no_arrow" in config else False
-target_genome = config["target_genome"] if "target_genome" in config else False
-haplotypes = config["haplotypes"] if "haplotypes" in config else []
-keep = " ".join(config["keep"]) if "keep" in config else []
-min_seq_length = config["min_seq_length"] if "min_seq_length" in config else 500000
-res = config["dpi"] if "dpi" in config else 300
+tree = config.get("tree", None)
+format_img = config.get("format", "png")
+plot_height = config.get("height", 20)
+plot_width = config.get("width", 50)
+no_arrow = config.get("no_arrow", False)
+target_genome = config.get("target_genome", False)
+haplotypes = config.get("haplotypes", [])
+keep = " ".join(config.get("keep", []))
+min_seq_length = config.get("min_seq_length", 500000)
+res = config.get("dpi", 300)
 orders = config.get("order", [])
+annotate_genome_info = config.get("annotate_genome_info", False)
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
@@ -271,10 +271,11 @@ rule ribbon_plot:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
+        annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
 
 rule ribbon_plot_tree:
     input: 
@@ -297,7 +298,8 @@ rule ribbon_plot_tree:
         arrow = "--no-arrow" if no_arrow else "",
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
+        annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"

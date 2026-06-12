@@ -38,6 +38,11 @@ parser$add_argument("--ratio",
                                  "Increase if the labels are cut-off,",
                                  "decrease to decrease space between ribbon plot and cladogram"),
                     default = 0.1, required = FALSE, type = "double")
+parser$add_argument("--right-ratio",
+                    help = paste("Ratio adjustment for space on the right side of the ribbon plot.",
+                                 "Increase if the labels on the right are cut-off,",
+                                 "decrease to decrease space between ribbon plot and right edge of the plot"),
+                    default = 0.03, required = FALSE, type = "double")
 parser$add_argument("-p", "--prefix",
                     help = "Output prefix for PNG image (default synteny_gggenomes_plot)", required = FALSE,
                     default = "synteny_gggenomes_plot")
@@ -45,6 +50,8 @@ parser$add_argument("--format", help = "Output format for image (png, pdf or svg
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
+parser$add_argument("--annotate-genome-info", help = "Add annotations about number of sequences and genome size to the right of each bin",
+                    action = "store_true")
 
 args <- parser$parse_args()
 
@@ -124,6 +131,32 @@ get_y_coord <- function(haplotypes, bin_id, y, end=FALSE) {
   }
 }
 
+format_genome_size <- function(bp) {
+  dplyr::case_when(
+    bp >= 1e9 ~ paste0(sprintf("%.1f", bp / 1e9), " Gbp"),
+    bp >= 1e6 ~ paste0(sprintf("%.1f", bp / 1e6), " Mbp"),
+    bp >= 1e3 ~ paste0(sprintf("%.1f", bp / 1e3), " kbp"),
+    TRUE      ~ paste0(bp, " bp")
+  )
+}
+
+# Return dataframe with bin annotations
+get_bin_annotations <- function(plot){
+  bin_stats <- plot %>%
+  pull_seqs() %>%                          # or seqs(gggenomes_obj)
+  group_by(bin_id) %>%
+  summarise(
+    n_chr       = n(),
+    genome_size = sum(length),
+    y           = max(y),           # matches gggenomes' y layout
+    x_right     = max(xend)                  # rightmost coordinate
+  ) %>%
+  mutate(label = paste0(" ", format_genome_size(genome_size), ";  n=", n_chr)) 
+
+  bin_stats <- bin_stats %>% mutate(x_right = max(bin_stats$x_right))
+  return(bin_stats)
+}
+
 # Make the ribbon plot - these layers can be fully customized as needed!
 make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FALSE, centromeres = FALSE, add_arrow = FALSE, haplotypes = FALSE) {
   target_genome <- (sequences %>% head(1) %>% select(bin_id))[[1]]
@@ -183,6 +216,14 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
             axis.title.x = element_blank(),
             axis.text.x = element_blank(),
             axis.ticks.x = element_blank())
+  }
+
+  if (args$annotate_genome_info) {
+    bin_stats <- get_bin_annotations(plot)
+    
+    plot <- plot + geom_text(data = bin_stats, aes(x = x_right, y = y, label = label, hjust = 0),
+                             size = 4) +
+                  expand_limits(x = max(bin_stats$x_right) + (xmax * (args$right_ratio)))
   }
 
   return(plot)

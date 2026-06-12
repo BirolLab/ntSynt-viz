@@ -132,7 +132,6 @@ def main():
             f"--config " \
             f"prefix={args.prefix} " \
             f"blocks={args.blocks} " \
-            f"name_conversion={args.name_conversion} " \
             f"fai='{args.fais}' " \
             f"ribbon_ratio={args.ribbon_adjust} " \
             f"scale={args.scale} " \
@@ -143,6 +142,8 @@ def main():
             f"width={args.width} " \
             f"min_seq_length={args.seq_length} "
 
+    if args.name_conversion:
+        cmd += f"name_conversion={args.name_conversion} "
     if args.centromeres:
         cmd += f"centromeres={args.centromeres} "
     if args.normalize:

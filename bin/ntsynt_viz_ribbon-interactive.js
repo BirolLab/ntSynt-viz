@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const bgRect = svg.querySelector("rect.ggiraph-svg-bg");
     if (bgRect) bgRect.style.pointerEvents = "none";
 
-    // --- FIX: disable pointer events on all ribbon polygons ---
+    // --- disable pointer events on all ribbon polygons ---
     // Chromosomes (segments) will be the sole hit targets for ggiraph.
     // We handle ribbon tooltips manually via JS geometry check below.
     svg.querySelectorAll("polygon[data-id]").forEach(function(poly) {
@@ -115,13 +115,6 @@ container.addEventListener("mousemove", function(e) {
             p.style.fill = "darkgrey";
             p.style.fillOpacity = "0.3";
           }
-        //   } else {
-        //     p.style.stroke = "";
-        //     p.style.strokeWidth = "";
-        //     p.style.opacity = "0.2";
-        //     p.style.fill = "";
-        //     p.style.fillOpacity = "";
-        //   }
         });
         applyLegendState(hoveredId);
 
@@ -158,7 +151,7 @@ container.addEventListener("mousemove", function(e) {
       applyLegendState();
     }, true);
 
-    // ---- Legend click / chromosome filtering (unchanged from original) ----
+    // ---- Legend click / chromosome filtering ----
     const legendChromMap = {};
     svg.querySelectorAll("text").forEach(function(t) {
       const chrom = t.textContent.trim();

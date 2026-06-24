@@ -91,7 +91,8 @@ output_files = {
     }
 
 rule all:
-    input: output_files[format_img]
+    input: output_files[format_img],
+            f"{prefix}_ribbon-plot.html"
 
 ouput_files_tree = {
         "png": f"{prefix}_ribbon-plot_tree.png",
@@ -100,7 +101,8 @@ ouput_files_tree = {
     }
 
 rule gggenomes_ribbon_plot_tree:
-    input: ouput_files_tree[format_img]
+    input: ouput_files_tree[format_img],
+            f"{prefix}_ribbon-plot_tree.html"
 
 rule renaming:
     input: 
@@ -260,7 +262,8 @@ rule ribbon_plot:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = output_files[format_img]
+        out_img = output_files[format_img],
+        out_html = f"{prefix}_ribbon-plot.html"
     params:
         prefix = f"{prefix}_ribbon-plot",
         ratio = ribbon_ratio,
@@ -287,7 +290,8 @@ rule ribbon_plot_tree:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = ouput_files_tree[format_img]
+        out_img = ouput_files_tree[format_img],
+        out_html = f"{prefix}_ribbon-plot_tree.html"
     params:
         prefix = f"{prefix}_ribbon-plot_tree",
         ratio = ribbon_ratio,

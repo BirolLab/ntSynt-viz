@@ -28,7 +28,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph
     displayName: Install dependencies
 
   - script: |
@@ -85,6 +85,9 @@ jobs:
   - publish: tests/great-apes_ribbon-plots_tree_order_ribbon-plot.png
     artifact: Example4
 
+  - publish: tests/great-apes_ribbon-plots_tree_order_ribbon-plot.html
+    artifact: Example4_HTML
+
 
 - job:
   displayName: macOS-latest
@@ -113,7 +116,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph
     displayName: Install dependencies
 
   - script: |

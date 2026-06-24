@@ -56,6 +56,10 @@ parser$add_argument("--annotate-genome-info", help = "Add annotations about numb
 
 args <- parser$parse_args()
 
+#############################
+# Prepare data
+#############################
+
 # Read in and prepare sequences
 sequences <- read.csv(args$sequences, sep = "\t", header = TRUE) %>%
   mutate(relative_orientation = if_else(relative_orientation == "+", "", "\u2190"))
@@ -110,6 +114,23 @@ painting <- read.csv(args$painting, sep = "\t", header = TRUE) %>%
 # Read in the data frame with info about colours to choose for sequences
 colours_df <- read.csv(args$colour_indices, sep = "\t", header = TRUE)
 
+# Read in haplotypes, or set to FALSE
+if (! is.null(args$haplotypes)) {
+  haplotypes <- read.csv(args$haplotypes, sep = "\t", header = TRUE) %>% mutate(bin_id = str_replace_all(bin_id, "_", " "))
+} else {
+  haplotypes <- FALSE
+}
+
+if (! is.null(args$centromeres)) {
+  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE)
+} else {
+  centromeres <- FALSE
+}
+
+#############################
+# Helper functions
+#############################
+
 # Get the y coordinates for the features
 get_y_coord <- function(haplotypes, bin_id, y, end=FALSE) {
   if (typeof(haplotypes) == "logical") {
@@ -144,13 +165,13 @@ format_genome_size <- function(bp) {
 # Return dataframe with bin annotations
 get_bin_annotations <- function(plot){
   bin_stats <- plot %>%
-  pull_seqs() %>%                          # or seqs(gggenomes_obj)
+  pull_seqs() %>%                          
   group_by(bin_id) %>%
   summarise(
     n_chr       = n(),
     genome_size = sum(length),
-    y           = max(y),           # matches gggenomes' y layout
-    x_right     = max(xend)                   # rightmost coordinate
+    y           = max(y),           
+    x_right     = max(xend)
   ) %>%
   mutate(label = paste0("\u00A0\u00A0\u00A0", format_genome_size(genome_size), ";  n=", n_chr)) 
 
@@ -158,7 +179,76 @@ get_bin_annotations <- function(plot){
   return(bin_stats)
 }
 
-# Make the ribbon plot - these layers can be fully customized as needed!
+# Prepare information about block coordinates for interactive layers
+get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
+  block_coords <- pull_links(p) %>%
+    group_by(block_id) %>%
+    summarise(
+      coords = {
+        # Each row contributes two genomes; collect all unique combinations
+        g1 <- tibble(genome = bin_id,  chrom = seq_id,  start = start,  end = end)
+        g2 <- tibble(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
+        bind_rows(g1, g2) %>%
+          distinct() %>%
+          mutate(line = paste0(stringr::str_pad(genome, width = max_genome_len, side="right", pad='\u00A0'),
+                              " ", 
+                              stringr::str_pad(chrom, width = max_chrom_len, side="right", pad='\u00A0'),
+                              ": ",
+                              format(start, big.mark=","), " – ",
+                              format(end,   big.mark=","), " bp")) %>%
+          pull(line) %>%
+          paste(collapse = "\n")
+      },
+      .groups = "drop"
+    )
+    return(block_coords)
+}
+
+# Get the information about synteny links for interactive layers
+get_link_info <- function(p, block_coords) {
+    link_data <- pull_links(p) %>%
+    left_join(block_coords, by = "block_id") %>%
+    mutate(
+      tooltip  = paste0("Block ID: ", block_id, "\n", coords),
+      group_id = row_number()
+    ) %>%
+    rowwise() %>%
+    mutate(poly = list(tibble(
+      px      = c(x,    xend,  xmax,  xmin),
+      py      = c(y,    y,     yend,  yend),
+      tooltip = tooltip,
+      data_id = block_id
+    ))) %>%
+    ungroup() %>%
+    select(group_id, poly) %>%
+    unnest(poly)
+    return(link_data)
+}
+
+# Build chromosome -> block_id mapping (target genome seq_id only, as these appear in legend)
+build_js_map <- function(p) {
+  chrom_block_map <- pull_links(p) %>%
+    select(block_id, seq_id) %>%
+    distinct() %>%
+    group_by(seq_id) %>%
+    summarise(block_ids = list(unique(block_id)), .groups = "drop") %>%
+    rename(chrom = seq_id)
+
+  js_map_entries <- chrom_block_map %>%
+    rowwise() %>%
+    mutate(entry = paste0(
+      '"', chrom, '": [',
+      paste0('"', unlist(block_ids), '"', collapse = ","),
+      ']'
+    )) %>%
+    pull(entry) %>%
+    paste(collapse = ",\n")
+
+  js_map <- paste0("const chromBlockMap = {\n", js_map_entries, "\n};")
+  return(js_map)
+}
+
+# Make the ribbon plot - these layers can be fully customized as needed
 make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FALSE, centromeres = FALSE, add_arrow = FALSE, haplotypes = FALSE) {
   target_genome <- (sequences %>% head(1) %>% select(bin_id))[[1]]
   sequences_filt <- unique((sequences %>% filter(bin_id == target_genome))$seq_id)
@@ -170,10 +260,6 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   } else {
     p <-  gggenomes(seqs = sequences, links = links, feats = list(painting))
   }
-
-  # Extract layout-computed coordinates BEFORE adding layers
-  seq_data  <- pull_seqs(p)
-  link_data <- pull_links(p)
 
   plot <- p + theme_gggenomes_clean(base_size = 15) +
   geom_link(aes(fill = colour_block,
@@ -189,7 +275,6 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   geom_bin_label(aes(label = bin_id,
                     y = get_y_coord(haplotypes, bin_id, .data$y)),
                 size = 6, fontface = "italic") + # label each bin
-  #geom_seq_label(aes(label = seq_id), vjust = 1.1, size = 4) + # Can add seq labels if desired
   theme(axis.text = element_text(size = 25, face = "italic"),
         legend.position = "bottom",
         legend.text = element_text(size = 15, margin = margin(r=10, l=3))) +
@@ -231,72 +316,36 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
                   expand_limits(x = max(bin_stats$x_right) + (xmax * (args$right_ratio)))
   }
 
-  # Ribbons
-  # Build per-block coordinate summaries (all genomes in each block)
-
-  # Combine all unique genome/chrom combinations across your dataset
+  # Prepare interactive components
+  # Combine all unique genome/chrom combinations across the dataset
   all_elements <- bind_rows(
     pull_links(p) %>% select(genome = bin_id,  chrom = seq_id,  start, end),
     pull_links(p) %>% select(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
   ) %>% distinct()
 
-  # Find the maximum string length of the genome IDs to know how much to pad
+  # Find the maximum string length of the genome IDs to know how much to pad for hover boxes
   max_genome_len <- max(nchar(all_elements$genome), na.rm = TRUE)
   max_chrom_len  <- max(nchar(all_elements$chrom), na.rm = TRUE)
 
-  block_coords <- pull_links(p) %>%
-    group_by(block_id) %>%
-    summarise(
-      coords = {
-        # Each row contributes two genomes; collect all unique combinations
-        g1 <- tibble(genome = bin_id,  chrom = seq_id,  start = start,  end = end)
-        g2 <- tibble(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
-        bind_rows(g1, g2) %>%
-          distinct() %>%
-          mutate(line = paste0(stringr::str_pad(genome, width = max_genome_len, side="right", pad='\u00A0'),
-                              " ", 
-                              stringr::str_pad(chrom, width = max_chrom_len, side="right", pad='\u00A0'),
-                              ": ",
-                              format(start, big.mark=","), " – ",
-                              format(end,   big.mark=","), " bp")) %>%
-          pull(line) %>%
-          paste(collapse = "\n")
-      },
-      .groups = "drop"
+  block_coords <- get_block_coord_info(p, max_genome_len, max_chrom_len)
+  link_data <- get_link_info(p, block_coords)
+
+  # Add ribbon hover interactivity
+  plot <- plot +
+    geom_polygon_interactive(
+      data = link_data,
+      aes(
+        x       = px,
+        y       = py,
+        group   = group_id,
+        tooltip = tooltip,
+        data_id = data_id
+      ),
+      alpha = 0,
+      hover_nearest = FALSE
     )
 
-  link_data <- pull_links(p) %>%
-    left_join(block_coords, by = "block_id") %>%
-    mutate(
-      tooltip  = paste0("Block ID: ", block_id, "\n", coords),
-      group_id = row_number()
-    ) %>%
-    rowwise() %>%
-    mutate(poly = list(tibble(
-      px      = c(x,    xend,  xmax,  xmin),
-      py      = c(y,    y,     yend,  yend),
-      tooltip = tooltip,
-      data_id = block_id
-    ))) %>%
-    ungroup() %>%
-    select(group_id, poly) %>%
-    unnest(poly)
-
-plot <- plot +
-  geom_polygon_interactive(
-    data = link_data,
-    aes(
-      x       = px,
-      y       = py,
-      group   = group_id,
-      tooltip = tooltip,
-      data_id = data_id
-    ),
-    alpha = 0,
-    hover_nearest = FALSE # Changed to FALSE so it respects exact geometry layout boundaries
-  )
-
-  # Chromosomes
+  # Prepare information about chromosomes for interactive layers
   seq_data <- pull_seqs(p) %>%
     mutate(
       length_fmt = format(length, big.mark = ",", scientific = FALSE),
@@ -306,60 +355,32 @@ plot <- plot +
         "Length: ",     length_fmt,  " bp"
       )
     )
+    # Add interactive layer for chromosomes
   plot <- plot +
-  geom_segment_interactive(
-    data = seq_data,
-    aes(
-      x     = x,
-      xend  = xend,
-      y     = y,
-      yend  = y,
-      tooltip  = tooltip,
-      data_id  = seq_id
-    ),
-    linewidth = 10,   # wide invisible hit area
-    alpha     = 0,
-    hover_nearest = FALSE # Changed to FALSE so it respects exact geometry layout boundaries
-  )
+    geom_segment_interactive(
+      data = seq_data,
+      aes(
+        x     = x,
+        xend  = xend,
+        y     = y,
+        yend  = y,
+        tooltip  = tooltip,
+        data_id  = seq_id
+      ),
+      linewidth = 10, # Increased area to hit for hover box
+      alpha     = 0,
+      hover_nearest = FALSE
+    )
 
-  cat(colnames(pull_links(p)))
-  print(head(pull_links(p)))
-
-# Build chromosome -> block_id mapping (target genome seq_id only, as these appear in legend)
-  chrom_block_map <- pull_links(p) %>%
-    select(block_id, seq_id) %>%
-    distinct() %>%
-    group_by(seq_id) %>%
-    summarise(block_ids = list(unique(block_id)), .groups = "drop") %>%
-    rename(chrom = seq_id)
-
-  js_map_entries <- chrom_block_map %>%
-    rowwise() %>%
-    mutate(entry = paste0(
-      '"', chrom, '": [',
-      paste0('"', unlist(block_ids), '"', collapse = ","),
-      ']'
-    )) %>%
-    pull(entry) %>%
-    paste(collapse = ",\n")
-
-  js_map <- paste0("const chromBlockMap = {\n", js_map_entries, "\n};")
+  # Build map of chromosome -> block_id for interactive legend
+  js_map <- build_js_map(p)
 
   return(list(plot = plot, js_map = js_map))
 }
 
-# Read in haplotypes, or set to FALSE
-if (! is.null(args$haplotypes)) {
-  haplotypes <- read.csv(args$haplotypes, sep = "\t", header = TRUE) %>% mutate(bin_id = str_replace_all(bin_id, "_", " "))
-} else {
-  haplotypes <- FALSE
-}
-
-if (! is.null(args$centromeres)) {
-  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE)
-} else {
-  centromeres <- FALSE
-}
+#############################
+# Prepare plots
+#############################
 
 # Make the ribbon plot
 synteny_plot_tmp <- make_plot(links_ntsynt, sequences, painting, colours_df, add_scale_bar = TRUE, centromeres = centromeres,
@@ -438,8 +459,13 @@ if (args$format == "pdf") {
   cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
 }
 
+
+# Prepare interactive HTML
+script_dir <- dirname(normalizePath(commandArgs(trailingOnly = FALSE)[
+  grep("--file=", commandArgs(trailingOnly = FALSE))
+] |> sub("--file=", "", x = _)))
 js_template <- paste(
-  readLines("/projects/btl/lcoombe/git/ntSynt-viz/bin/ntsynt_viz_ribbon-interactive.js", warn = FALSE),
+  readLines(paste(script_dir, "/ntsynt_viz_ribbon-interactive.js", sep=""), warn = FALSE),
   collapse = "\n"
 )
 
@@ -452,7 +478,7 @@ js_inject <- gsub(
 
 interactive_plot <- girafe(
   ggobj = plots,
-  width_svg  = args$width  / 2.54,
+  width_svg  = args$width  / 2.54, # Converting to inches
   height_svg = args$height / 2.54,
   options = list(
     opts_hover(css = "stroke:darkgrey; stroke-width:1; fill-opacity:0.1; transition: all 0.1s ease;"),

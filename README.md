@@ -48,6 +48,7 @@ These features ensure that the output ribbon plots (powered by [gggenomes](https
   * [stringr](https://stringr.tidyverse.org/)
   * [ggplot2](https://ggplot2.tidyverse.org)
   * [svglite](https://cran.r-project.org/web/packages/svglite/index.html)
+  * [ggiraph](https://davidgohel.github.io/ggiraph/)
 
 ### Installing ntSynt-viz using conda <a name=install></a>
 ```

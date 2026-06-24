@@ -11,7 +11,8 @@ suppressPackageStartupMessages({
   library(stringr)
   library(gggenomes)
   library(tidyr)
-  library(svglite)})
+  library(svglite)
+  library(ggiraph)})
 
 # Example script for generating ntSynt synteny ribbon plots using gggenomes
 
@@ -42,7 +43,7 @@ parser$add_argument("--right-ratio",
                     help = paste("Ratio adjustment for space on the right side of the ribbon plot.",
                                  "Increase if the labels on the right are cut-off,",
                                  "decrease to decrease space between ribbon plot and right edge of the plot"),
-                    default = 0.03, required = FALSE, type = "double")
+                    default = 0.07, required = FALSE, type = "double")
 parser$add_argument("-p", "--prefix",
                     help = "Output prefix for PNG image (default synteny_gggenomes_plot)", required = FALSE,
                     default = "synteny_gggenomes_plot")
@@ -149,9 +150,9 @@ get_bin_annotations <- function(plot){
     n_chr       = n(),
     genome_size = sum(length),
     y           = max(y),           # matches gggenomes' y layout
-    x_right     = max(xend)                  # rightmost coordinate
+    x_right     = max(xend)                   # rightmost coordinate
   ) %>%
-  mutate(label = paste0(" ", format_genome_size(genome_size), ";  n=", n_chr)) 
+  mutate(label = paste0("\u00A0\u00A0\u00A0", format_genome_size(genome_size), ";  n=", n_chr)) 
 
   bin_stats <- bin_stats %>% mutate(x_right = max(bin_stats$x_right))
   return(bin_stats)
@@ -169,6 +170,10 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   } else {
     p <-  gggenomes(seqs = sequences, links = links, feats = list(painting))
   }
+
+  # Extract layout-computed coordinates BEFORE adding layers
+  seq_data  <- pull_seqs(p)
+  link_data <- pull_links(p)
 
   plot <- p + theme_gggenomes_clean(base_size = 15) +
   geom_link(aes(fill = colour_block,
@@ -226,8 +231,121 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
                   expand_limits(x = max(bin_stats$x_right) + (xmax * (args$right_ratio)))
   }
 
-  return(plot)
+  # Ribbons
+  # Build per-block coordinate summaries (all genomes in each block)
 
+  # Combine all unique genome/chrom combinations across your dataset
+  all_elements <- bind_rows(
+    pull_links(p) %>% select(genome = bin_id,  chrom = seq_id,  start, end),
+    pull_links(p) %>% select(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
+  ) %>% distinct()
+
+  # Find the maximum string length of the genome IDs to know how much to pad
+  max_genome_len <- max(nchar(all_elements$genome), na.rm = TRUE)
+  max_chrom_len  <- max(nchar(all_elements$chrom), na.rm = TRUE)
+
+  block_coords <- pull_links(p) %>%
+    group_by(block_id) %>%
+    summarise(
+      coords = {
+        # Each row contributes two genomes; collect all unique combinations
+        g1 <- tibble(genome = bin_id,  chrom = seq_id,  start = start,  end = end)
+        g2 <- tibble(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
+        bind_rows(g1, g2) %>%
+          distinct() %>%
+          mutate(line = paste0(stringr::str_pad(genome, width = max_genome_len, side="right", pad='\u00A0'),
+                              " ", 
+                              stringr::str_pad(chrom, width = max_chrom_len, side="right", pad='\u00A0'),
+                              ": ",
+                              format(start, big.mark=","), " – ",
+                              format(end,   big.mark=","), " bp")) %>%
+          pull(line) %>%
+          paste(collapse = "\n")
+      },
+      .groups = "drop"
+    )
+
+  link_data <- pull_links(p) %>%
+    left_join(block_coords, by = "block_id") %>%
+    mutate(
+      tooltip  = paste0("Block ID: ", block_id, "\n", coords),
+      group_id = row_number()
+    ) %>%
+    rowwise() %>%
+    mutate(poly = list(tibble(
+      px      = c(x,    xend,  xmax,  xmin),
+      py      = c(y,    y,     yend,  yend),
+      tooltip = tooltip,
+      data_id = block_id
+    ))) %>%
+    ungroup() %>%
+    select(group_id, poly) %>%
+    unnest(poly)
+
+plot <- plot +
+  geom_polygon_interactive(
+    data = link_data,
+    aes(
+      x       = px,
+      y       = py,
+      group   = group_id,
+      tooltip = tooltip,
+      data_id = data_id
+    ),
+    alpha = 0,
+    hover_nearest = FALSE # Changed to FALSE so it respects exact geometry layout boundaries
+  )
+
+  # Chromosomes
+  seq_data <- pull_seqs(p) %>%
+    mutate(
+      length_fmt = format(length, big.mark = ",", scientific = FALSE),
+      tooltip = paste0(
+        "Genome: ",     bin_id,      "\n",
+        "Chromosome: ", seq_id,      "\n",
+        "Length: ",     length_fmt,  " bp"
+      )
+    )
+  plot <- plot +
+  geom_segment_interactive(
+    data = seq_data,
+    aes(
+      x     = x,
+      xend  = xend,
+      y     = y,
+      yend  = y,
+      tooltip  = tooltip,
+      data_id  = seq_id
+    ),
+    linewidth = 10,   # wide invisible hit area
+    alpha     = 0,
+    hover_nearest = FALSE # Changed to FALSE so it respects exact geometry layout boundaries
+  )
+
+  cat(colnames(pull_links(p)))
+  print(head(pull_links(p)))
+
+# Build chromosome -> block_id mapping (target genome seq_id only, as these appear in legend)
+  chrom_block_map <- pull_links(p) %>%
+    select(block_id, seq_id) %>%
+    distinct() %>%
+    group_by(seq_id) %>%
+    summarise(block_ids = list(unique(block_id)), .groups = "drop") %>%
+    rename(chrom = seq_id)
+
+  js_map_entries <- chrom_block_map %>%
+    rowwise() %>%
+    mutate(entry = paste0(
+      '"', chrom, '": [',
+      paste0('"', unlist(block_ids), '"', collapse = ","),
+      ']'
+    )) %>%
+    pull(entry) %>%
+    paste(collapse = ",\n")
+
+  js_map <- paste0("const chromBlockMap = {\n", js_map_entries, "\n};")
+
+  return(list(plot = plot, js_map = js_map))
 }
 
 # Read in haplotypes, or set to FALSE
@@ -244,8 +362,10 @@ if (! is.null(args$centromeres)) {
 }
 
 # Make the ribbon plot
-synteny_plot <- make_plot(links_ntsynt, sequences, painting, colours_df, add_scale_bar = TRUE, centromeres = centromeres,
-                          add_arrow = !args$no_arrow, haplotypes = haplotypes)
+synteny_plot_tmp <- make_plot(links_ntsynt, sequences, painting, colours_df, add_scale_bar = TRUE, centromeres = centromeres,
+                              add_arrow = !args$no_arrow, haplotypes = haplotypes)
+synteny_plot <- synteny_plot_tmp$plot
+js_map       <- synteny_plot_tmp$js_map
 
 
 if (is.null(args$tree)) {
@@ -301,19 +421,61 @@ if (any_rc && !args$no_arrow) {
   plots <- ggarrange(plots, note, ncol = 1, heights = c(10, 1))
 }
 
-# Save the ribbon plot
+# Save static plot in requested format
 if (args$format == "pdf") {
-  ggsave(paste(args$prefix, ".pdf", sep = ""), plots,
+  ggsave(paste0(args$prefix, ".pdf"), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
-  cat(paste("Plot saved:", paste(args$prefix, ".pdf", sep = ""), "\n", sep = " "))
+  cat(paste("Plot saved:", paste0(args$prefix, ".pdf"), "\n"))
 } else if (args$format == "svg") {
-  ggsave(paste(args$prefix, ".svg", sep = ""), plots,
+  ggsave(paste0(args$prefix, ".svg"), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
-  cat(paste("Plot saved:", paste(args$prefix, ".svg", sep = ""), "\n", sep = " "))
+  cat(paste("Plot saved:", paste0(args$prefix, ".svg"), "\n"))
 } else {
-  png(paste(args$prefix, ".png", sep = ""), units = "cm", width = args$width, height = args$height,
+  png(paste0(args$prefix, ".png"), units = "cm", width = args$width, height = args$height,
       res = args$dpi, bg = "white")
   print(plots)
   dev.off()
-  cat(paste("Plot saved:", paste(args$prefix, ".png", sep = ""), "\n", sep = " "))
+  cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
 }
+
+js_template <- paste(
+  readLines("/projects/btl/lcoombe/git/ntSynt-viz/bin/ntsynt_viz_ribbon-interactive.js", warn = FALSE),
+  collapse = "\n"
+)
+
+js_inject <- gsub(
+  "__CHROM_BLOCK_MAP__",
+  js_map,
+  js_template,
+  fixed = TRUE
+)
+
+interactive_plot <- girafe(
+  ggobj = plots,
+  width_svg  = args$width  / 2.54,
+  height_svg = args$height / 2.54,
+  options = list(
+    opts_hover(css = "stroke:darkgrey; stroke-width:1; fill-opacity:0.1; transition: all 0.1s ease;"),
+    opts_hover_inv(css = "opacity:0.2;"),
+    opts_zoom(max = 10),
+    opts_toolbar(pngname = args$prefix),
+    opts_tooltip(
+      css = paste(
+        "background: rgba(255,255,255,0.9);",
+        "padding: 10px;",
+        "border: 1px solid black;",
+        "border-radius: 4px;",
+        "font-family: monospace;",
+        "font-size: 10px;"
+      )
+    )
+  )
+)
+
+html_file <- paste0(args$prefix, ".html")
+htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = args$prefix)
+html_content <- readLines(html_file, warn = FALSE)
+body_close <- which(grepl("</body>", html_content))
+html_content <- append(html_content, js_inject, after = body_close - 1)
+writeLines(html_content, html_file)
+cat(paste("Interactive HTML saved:", html_file, "\n"))

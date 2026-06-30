@@ -30,6 +30,8 @@ res = config.get("dpi", 300)
 orders = config.get("order", [])
 annotate_genome_info = config.get("annotate_genome_info", False)
 
+optimize_ordering = config.get("optimize_ordering", True)
+
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
     # Read in name conversions
@@ -145,15 +147,25 @@ rule make_nj_tree:
 
 rule cladogram:
     input:
-        rules.make_nj_tree.output
+        tree = rules.make_nj_tree.output,
+        blocks = rules.renaming.output.renamed_blocks
     output:
         orders_tmp = temp(f"{prefix}_est-distances.order_tmp.tsv"),
         nwk_tmp = temp(f"{prefix}_est-distances_tmp.cladogram.nwk")
     params:
         prefix = f"{prefix}_est-distances",
         target = f"--target {target_genome}" if target_genome else ""
-    shell:
-        "ntsynt_viz_distance_cladogram.R --nwk {input} -p {params.prefix} --update_nwk {params.target}" 
+    run:
+        if optimize_ordering:
+            shell("""
+                set -eux -o pipefail
+                ntsynt_viz_distance_cladogram.R --nwk {input.tree} -p {params.prefix} --update_nwk {params.target}
+                ntsynt_viz_optimize_tree_topology.py --blocks {input.blocks} --tree {output.nwk_tmp} --out-order {output.orders_tmp} \
+                    --out-tree tmp_tree.nwk {params.target}
+                mv tmp_tree.nwk {output.nwk_tmp}
+                """)
+        else:
+            shell("set -eux -o pipefail; ntsynt_viz_distance_cladogram.R --nwk {input.tree} -p {params.prefix} --update_nwk {params.target}")
 
 rule orders:
     input: 

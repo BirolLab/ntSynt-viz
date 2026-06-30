@@ -28,7 +28,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph biopython
     displayName: Install dependencies
 
   - script: |
@@ -116,7 +116,7 @@ jobs:
 
   - script: |
       source activate ntsynt_viz_ci
-      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph
+      mamba install --yes -c conda-forge -c bioconda quicktree r-base bioconductor-treeio r-ggpubr bioconductor-ggtree r-phytools r-dplyr r-argparse r-scales r-stringr pylint intervaltree snakemake r-ggplot2 r-gggenomes r-svglite r-ggiraph biopython
     displayName: Install dependencies
 
   - script: |

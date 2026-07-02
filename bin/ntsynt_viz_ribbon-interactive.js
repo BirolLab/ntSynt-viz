@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // --- Manual ribbon tooltip ---
     // We need our own tooltip div since we bypassed ggiraph for ribbons
+    let pinnedRibbonId = null;
+
     const ribbonTip = document.createElement("div");
     ribbonTip.style.cssText = [
       "position:fixed",
@@ -43,7 +45,35 @@ document.addEventListener("DOMContentLoaded", function() {
       "z-index:9999",
       "max-width:400px"
     ].join(";");
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "ribbon-tip-content";
+
+    const controlsDiv = document.createElement("div");
+    controlsDiv.className = "ribbon-tip-controls";
+    controlsDiv.style.cssText = "display:none;margin-top:6px;text-align:right;";
+    controlsDiv.innerHTML =
+      '<button class="ribbon-tip-copy" style="font-size:9px;margin-right:4px;">Copy</button>' +
+      '<button class="ribbon-tip-close" style="font-size:9px;">✕</button>';
+
+    ribbonTip.appendChild(contentDiv);
+    ribbonTip.appendChild(controlsDiv);
     document.body.appendChild(ribbonTip);
+
+    controlsDiv.querySelector(".ribbon-tip-copy").addEventListener("click", function(e) {
+      e.stopPropagation();
+      navigator.clipboard.writeText(contentDiv.innerText).then(function() {
+        const btn = controlsDiv.querySelector(".ribbon-tip-copy");
+        const old = btn.textContent;
+        btn.textContent = "Copied!";
+        setTimeout(function() { btn.textContent = old; }, 1200);
+      });
+    });
+
+    controlsDiv.querySelector(".ribbon-tip-close").addEventListener("click", function(e) {
+      e.stopPropagation();
+      unpinTooltip();
+    });
 
     // Check if cursor is near any chromosome segment (invisible hit area)
     // Returns true if within CHROM_PRIORITY_PX pixels of a segment element
@@ -65,6 +95,22 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       }
       return false;
+    }
+
+    function getChromosomeUnderCursor(e) {
+      const segs = svg.querySelectorAll("line[data-id], [data-id].chromosome");
+      for (let seg of segs) {
+        const bbox = seg.getBoundingClientRect();
+        if (
+          e.clientX >= bbox.left  - CHROM_PRIORITY_PX &&
+          e.clientX <= bbox.right + CHROM_PRIORITY_PX &&
+          e.clientY >= bbox.top   - CHROM_PRIORITY_PX &&
+          e.clientY <= bbox.bottom + CHROM_PRIORITY_PX
+        ) {
+          return seg;
+        }
+      }
+      return null;
     }
 
 
@@ -96,6 +142,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
 container.addEventListener("mousemove", function(e) {
+      if (pinnedRibbonId) return; // frozen while pinned
+
       if (isNearChromosome(e)) {
         ribbonTip.style.display = "none";
         applyLegendState();
@@ -128,8 +176,7 @@ container.addEventListener("mousemove", function(e) {
             .replaceAll("&lt;br/&gt;", "<br/>")
             .replaceAll("&lt;br&gt;", "<br>");
 
-          ribbonTip.innerHTML = tooltipHtml;
-          ribbonTip.innerHTML = tooltipHtml;
+          contentDiv.innerHTML = tooltipHtml;
           ribbonTip.style.display = "block";
           ribbonTip.style.left = (e.clientX + 14) + "px";
           ribbonTip.style.top  = (e.clientY + 14) + "px";
@@ -147,6 +194,7 @@ container.addEventListener("mousemove", function(e) {
     }, true);
 
     container.addEventListener("mouseleave", function() {
+      if (pinnedRibbonId) return;
       ribbonTip.style.display = "none";
       applyLegendState();
     }, true);
@@ -195,6 +243,52 @@ container.addEventListener("mousemove", function(e) {
             poly.style.stroke = "";
             poly.style.strokeWidth = "";            }
         });
+    }
+
+    function pinTooltip(el, e) {
+      const titleEl = el.querySelector ? el.querySelector("title") : null;
+      const tooltipText = (titleEl ? titleEl.innerHTML : null)
+        || el.getAttribute("title")
+        || el.getAttribute("data-original-title");
+      if (!tooltipText) return;
+
+      pinnedRibbonId = el.getAttribute("data-id");
+
+      const tooltipHtml = tooltipText
+        .replaceAll("&lt;br/&gt;", "<br/>")
+        .replaceAll("&lt;br&gt;", "<br>");
+
+      contentDiv.innerHTML = tooltipHtml;
+      controlsDiv.style.display = "block";
+      ribbonTip.style.pointerEvents = "auto";
+      ribbonTip.style.userSelect = "text";
+      ribbonTip.style.display = "block";
+      ribbonTip.style.left = (e.clientX + 14) + "px";
+      ribbonTip.style.top  = (e.clientY + 14) + "px";
+      const r = ribbonTip.getBoundingClientRect();
+      if (r.right  > window.innerWidth)  ribbonTip.style.left = (e.clientX - r.width  - 14) + "px";
+      if (r.bottom > window.innerHeight) ribbonTip.style.top  = (e.clientY - r.height - 14) + "px";
+
+      if (el.tagName && el.tagName.toLowerCase() === "polygon") {
+        svg.querySelectorAll("polygon[data-id]").forEach(function(p) {
+          if (p.getAttribute("data-id") === pinnedRibbonId) {
+            p.style.stroke = "black";
+            p.style.strokeWidth = "1";
+            p.style.opacity = "1";
+            p.style.fill = "darkgrey";
+            p.style.fillOpacity = "0.3";
+          }
+        });
+        applyLegendState(pinnedRibbonId);
+      }
+    }
+
+    function unpinTooltip() {
+      pinnedRibbonId = null;
+      ribbonTip.style.display = "none";
+      ribbonTip.style.pointerEvents = "none";
+      controlsDiv.style.display = "none";
+      applyLegendState();
     }
 
     function inBBox(el, e, padding = 5) {
@@ -257,7 +351,22 @@ container.addEventListener("mousemove", function(e) {
 
     container.addEventListener("click", function(e) {
       const chrom = findLegendChrom(e);
-      if (chrom) handleChromClick(chrom);
+      if (chrom) { handleChromClick(chrom); return; }
+
+      if (pinnedRibbonId && ribbonTip.contains(e.target)) return; // let buttons work
+
+      const chromSeg = getChromosomeUnderCursor(e);
+      if (chromSeg) {
+        pinTooltip(chromSeg, e);
+        return;
+      }
+
+      const poly = getRibbonUnderCursor(e);
+      if (poly) {
+        pinTooltip(poly, e);
+      } else if (pinnedRibbonId) {
+        unpinTooltip();
+      }
     }, true);
 
 

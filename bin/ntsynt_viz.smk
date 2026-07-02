@@ -30,7 +30,7 @@ res = config.get("dpi", 300)
 orders = config.get("order", [])
 annotate_genome_info = config.get("annotate_genome_info", False)
 
-optimize_ordering = config.get("optimize_ordering", True)
+optimize_ordering = config.get("optimize_ordering", False)
 
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"

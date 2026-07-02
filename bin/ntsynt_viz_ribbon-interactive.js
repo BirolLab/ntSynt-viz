@@ -183,15 +183,15 @@ container.addEventListener("mousemove", function(e) {
             poly.style.stroke = "";
             poly.style.strokeWidth = "";
             } else if (activeBlockIds.has(bid)) {
-            poly.style.opacity = "1";
-            poly.style.fill = "darkgrey";
-            poly.style.fillOpacity = "0.5";
-            poly.style.stroke = "darkgrey";
-            poly.style.strokeWidth = "0.2px";
-            } else {
-            poly.style.opacity = "";
+            poly.style.opacity = "0.9";
             poly.style.fill = "";
-            poly.style.fillOpacity = "";
+            poly.style.fillOpacity = "0.9";
+            poly.style.stroke = "";
+            poly.style.strokeWidth = "";
+            } else {
+            poly.style.opacity = "0.6";
+            poly.style.fill = "white";
+            poly.style.fillOpacity = "0.6";
             poly.style.stroke = "";
             poly.style.strokeWidth = "";            }
         });

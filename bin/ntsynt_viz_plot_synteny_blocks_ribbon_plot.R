@@ -217,7 +217,8 @@ get_link_info <- function(p, block_coords) {
       px      = c(x,    xend,  xmax,  xmin),
       py      = c(y,    y,     yend,  yend),
       tooltip = tooltip,
-      data_id = block_id
+      data_id = block_id,
+      colour_block = colour_block
     ))) %>%
     ungroup() %>%
     select(group_id, poly) %>%
@@ -339,7 +340,8 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
         y       = py,
         group   = group_id,
         tooltip = tooltip,
-        data_id = data_id
+        data_id = data_id,
+        fill = colour_block
       ),
       alpha = 0,
       hover_nearest = FALSE
@@ -367,7 +369,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
         tooltip  = tooltip,
         data_id  = seq_id
       ),
-      linewidth = 10, # Increased area to hit for hover box
+      linewidth = 3, # Increased area to hit for hover box
       alpha     = 0,
       hover_nearest = FALSE
     )

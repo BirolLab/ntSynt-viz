@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Check if cursor is near any chromosome segment (invisible hit area)
     // Returns true if within CHROM_PRIORITY_PX pixels of a segment element
-    const CHROM_PRIORITY_PX = 8;
+    const CHROM_PRIORITY_PX = 5;
 
     function isNearChromosome(e) {
       // ggiraph chromosome segments are <line> elements with data-id

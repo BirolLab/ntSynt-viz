@@ -195,7 +195,7 @@ get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
                               stringr::str_pad(chrom, width = max_chrom_len, side="right", pad='\u00A0'),
                               ": ",
                               format(start, big.mark=","), " – ",
-                              format(end,   big.mark=","), " bp")) %>%
+                              format(end,   big.mark=","), " bp (", strand, ")")) %>%
           pull(line) %>%
           paste(collapse = "\n")
       },

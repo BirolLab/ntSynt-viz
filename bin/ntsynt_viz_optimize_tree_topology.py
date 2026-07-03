@@ -223,7 +223,7 @@ def build_subtree_options(
 
     for top_cost, top_top, top_bottom, top_order in top_options:
         for bottom_cost, bottom_top, bottom_bottom, bottom_order in bottom_options:
- 
+
             # Option A: [top subtree | bottom subtree]
             # Skip if target must be topmost but would not be.
             if not (target_in_bottom and not target_in_top):
@@ -265,7 +265,7 @@ def optimize_topology(
     """
     tree = load_tree(newick_path)
     root = tree.root
- 
+
     if target_genome is not None:
         leaf_names = set(_get_leaf_names(root))
         if target_genome not in leaf_names:

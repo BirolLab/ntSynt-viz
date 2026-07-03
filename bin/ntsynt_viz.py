@@ -101,7 +101,8 @@ def main():
                                   "and genome size to the right of each genome in the ribbon plot",
                               action="store_true")
     output_group.add_argument("--optimize-ordering",
-                              help="Optimize tree-guided genome sorting using inversions. Only use with strictly bifurcating trees.",
+                              help="Optimize tree-guided genome sorting using inversions. "
+                              "Only use with strictly bifurcating trees.",
                               action="store_true")
     main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",

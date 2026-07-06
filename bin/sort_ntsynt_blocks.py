@@ -13,6 +13,31 @@ SyntenyBlockComp = namedtuple("SyntenyBlock", ["id", "genome", "chrom", "start",
 
 faidx_re = re.compile(r'^(\S+)\.fai$')
 
+def normalize_strands(sorted_blocks):
+    "Re-orient strands so they are relative to the top (first) genome in sorted_blocks"
+    if not sorted_blocks:
+        return sorted_blocks
+
+    top_strand = sorted_blocks[0].strand
+
+    normalized_blocks = []
+    for block in sorted_blocks:
+        if top_strand == "+":
+            new_strand = block.strand
+        else:
+            new_strand = "+" if block.strand == "-" else "-"
+        normalized_blocks.append(block._replace(strand=new_strand))
+
+    return normalized_blocks
+
+def print_sorted_block(synteny_block_lines, sorting_order):
+    "Sort a single synteny block's lines by the given order, normalize strands, and print"
+    sorted_blocks = sorted(synteny_block_lines, key=lambda x: sorting_order[x.genome])
+    sorted_blocks = normalize_strands(sorted_blocks)
+    for asm_block in sorted_blocks:
+        print(*asm_block, sep="\t")
+
+
 def sort_blocks(synteny_blocks_fin, sorting_order):
     "Sort the assemblies within each synteny block"
 
@@ -28,15 +53,13 @@ def sort_blocks(synteny_blocks_fin, sorting_order):
                 block = SyntenyBlockComp(*line[:6])
             if curr_block_id is not None and block.id != curr_block_id:
                 # Print out the sorted blocks, they are all read in
-                for asm_block in sorted(synteny_block_lines, key=lambda x: sorting_order[x.genome]):
-                    print(*asm_block, sep="\t")
+                print_sorted_block(synteny_block_lines, sorting_order)
                 synteny_block_lines = []
             synteny_block_lines.append(block)
             curr_block_id = block.id
 
     # Print out the sorted blocks, they are all read in (making sure we have last block)
-    for asm_block in sorted(synteny_block_lines, key=lambda x: sorting_order[x.genome]):
-        print(*asm_block, sep="\t")
+    print_sorted_block(synteny_block_lines, sorting_order)
 
 
 def main():

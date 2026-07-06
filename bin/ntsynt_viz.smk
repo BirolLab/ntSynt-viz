@@ -264,7 +264,7 @@ rule chrom_paint:
     input: links = rules.gggenomes_files.output.links
     output: colour_feats = f"{prefix}.chrom-paint-feats.tsv"
     shell:
-        '''cat {input.links} |perl -ne 'chomp; @a=split("\t"); if(!defined $ct){{print "block_id\tseq_id\tbin_id\tstart\tend\tcolour_block\n"; $ct=1}} else {{print "$a[0]\t$a[1]\t$a[2]\t$a[3]\t$a[4]\t$a[10]\n"; print "$a[0]\t$a[5]\t$a[6]\t$a[7]\t$a[8]\t$a[10]\n";}}' > {output.colour_feats}'''
+        '''cat {input.links} |perl -ne 'chomp; @a=split("\t"); if(!defined $ct){{print "block_id\tseq_id\tbin_id\tstart\tend\tcolour_block\n"; $ct=1}} else {{print "$a[0]\t$a[1]\t$a[2]\t$a[3]\t$a[4]\t$a[12]\n"; print "$a[0]\t$a[5]\t$a[6]\t$a[7]\t$a[8]\t$a[12]\n";}}' > {output.colour_feats}'''
 
 rule ribbon_plot:
     input: 

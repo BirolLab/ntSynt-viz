@@ -186,8 +186,8 @@ get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
     summarise(
       coords = {
         # Each row contributes two genomes; collect all unique combinations
-        g1 <- tibble(genome = bin_id,  chrom = seq_id,  start = start,  end = end)
-        g2 <- tibble(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
+        g1 <- tibble(genome = bin_id,  chrom = seq_id,  start = start,  end = end, strand = strand1)
+        g2 <- tibble(genome = bin_id2, chrom = seq_id2, start = start2, end = end2, strand = strand2)
         bind_rows(g1, g2) %>%
           distinct() %>%
           mutate(line = paste0(stringr::str_pad(genome, width = max_genome_len, side="right", pad='\u00A0'),
@@ -487,6 +487,7 @@ interactive_plot <- girafe(
     opts_hover_inv(css = "opacity:0.2;"),
     opts_zoom(max = 10),
     opts_toolbar(pngname = args$prefix),
+    opts_sizing(rescale = TRUE, width = 1),
     opts_tooltip(
       css = paste(
         "background: rgba(255,255,255,0.9);",

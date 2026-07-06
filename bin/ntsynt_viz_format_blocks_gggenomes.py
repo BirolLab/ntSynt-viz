@@ -115,7 +115,6 @@ def make_links_file(synteny_file, prefix, valid_blocks_set, target_assembly):
                     lines_to_print = []
                 if curr_block.genome == target_assembly:
                     target_assembly_chrom = curr_block.chrom
-                    target_assembly_ori = curr_block.strand
                 prev_line = curr_block
 
             if prev_line.id in valid_blocks_set:

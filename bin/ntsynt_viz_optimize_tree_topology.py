@@ -322,7 +322,6 @@ def write_order_tsv(order: list[str], out_path: str) -> None:
 
 def write_newick(tree: Tree, out_path: str) -> None:
     "Write the rotated tree to a Newick file."
-    # format=1 preserves internal node names if present
     Phylo.write(tree, out_path, "newick")
 
 

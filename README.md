@@ -153,12 +153,12 @@ For more information about the output files from ntSynt-viz, check out our [wiki
 To visualize synteny information in pangenome graphs or from synteny block detection tools other than ntSynt, the synteny blocks simply need to be converted to the straightforward [ntSynt format](https://github.com/BirolLab/ntsynt?tab=readme-ov-file#output-files). For convenience, we also provide some scripts to do this conversion in the `conversion_scripts` directory.
 
 ## Interactive plots
-As of v1.1.0, ntSynt-viz will output an HTML file to allow interactive exploration of the ribbon plot.
+As of v1.1.0, ntSynt-viz generates an HTML file to allow interactive exploration of the ribbon plot.
 
 Interactive elements include:
-- Hover/click on a ribbon to highlight the entire block and display more information
-- Hover/click on a chromosome to display more information
-- Click on a chromosome in the legend to highlight correseponding synteny blocks
+* Hover/click on a ribbon to highlight the entire synteny block and display block coordinates and orientations
+* Hover/click on a chromosome to display ID and length
+* Click on one or more chromosomes in the legend to highlight the correseponding synteny blocks
 
 Example ribbon plot: XXX
 

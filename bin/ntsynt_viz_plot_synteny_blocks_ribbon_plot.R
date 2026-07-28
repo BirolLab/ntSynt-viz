@@ -181,7 +181,7 @@ get_bin_annotations <- function(plot){
   return(bin_stats)
 }
 
-# Prepare information about block coordinates for interactive layers
+# Prepare a summary string for each synteny block
 get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
   block_coords <- pull_links(p) %>%
     group_by(block_id) %>%
@@ -206,7 +206,7 @@ get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
     return(block_coords)
 }
 
-# Get the information about synteny links for interactive layers
+# Get the information/data about synteny links for interactive layers with ggiraph
 get_link_info <- function(p, block_coords) {
     link_data <- pull_links(p) %>%
     left_join(block_coords, by = "block_id") %>%

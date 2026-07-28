@@ -27,6 +27,37 @@ document.addEventListener("DOMContentLoaded", function() {
       poly.style.pointerEvents = "none";
     });
 
+    // ---------------------------------------------------------------
+    // PERF: cache static geometry once instead of re-querying/
+    // re-measuring the DOM on every mousemove. None of these elements
+    // move after render (aside from resize/scroll), so we build the
+    // lookup tables up front and reuse them.
+    // ---------------------------------------------------------------
+    const ribbonPolys = Array.from(svg.querySelectorAll("polygon[data-id]"));
+    // Local-space bbox per polygon, used as a cheap pre-filter before
+    // the expensive isPointInFill hit test.
+    ribbonPolys.forEach(function(poly) {
+      try { poly._bbox = poly.getBBox(); } catch (err) { poly._bbox = null; }
+    });
+
+    let chromSegs = []; // { el, rect } - rect refreshed on resize/scroll
+    function refreshChromSegRects() {
+      const segEls = svg.querySelectorAll("line[data-id], [data-id].chromosome");
+      chromSegs = Array.from(segEls).map(function(el) {
+        return { el: el, rect: el.getBoundingClientRect() };
+      });
+    }
+    refreshChromSegRects();
+
+    // Debounced re-measure on resize/scroll, since layout can shift then.
+    let resizeTimer = null;
+    function scheduleRectRefresh() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(refreshChromSegRects, 150);
+    }
+    window.addEventListener("resize", scheduleRectRefresh, true);
+    window.addEventListener("scroll", scheduleRectRefresh, true);
+
     // --- Manual ribbon tooltip ---
     // We need our own tooltip div since we bypassed ggiraph for ribbons
     let pinnedRibbonId = null;
@@ -76,58 +107,60 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // Check if cursor is near any chromosome segment (invisible hit area)
-    // Returns true if within CHROM_PRIORITY_PX pixels of a segment element
+    // Returns the matched <line> element, or null.
+    // PERF: uses the cached chromSegs array (no querySelectorAll or
+    // getBoundingClientRect on every call) instead of two separate
+    // near-duplicate functions.
     const CHROM_PRIORITY_PX = 5;
 
-    function isNearChromosome(e) {
-      // ggiraph chromosome segments are <line> elements with data-id
-      const segs = svg.querySelectorAll("line[data-id], [data-id].chromosome");
-      for (let seg of segs) {
-        const bbox = seg.getBoundingClientRect();
-        // Expand bbox by priority zone
-        if (
-          e.clientX >= bbox.left  - CHROM_PRIORITY_PX &&
-          e.clientX <= bbox.right + CHROM_PRIORITY_PX &&
-          e.clientY >= bbox.top   - CHROM_PRIORITY_PX &&
-          e.clientY <= bbox.bottom + CHROM_PRIORITY_PX
-        ) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     function getChromosomeUnderCursor(e) {
-      const segs = svg.querySelectorAll("line[data-id], [data-id].chromosome");
-      for (let seg of segs) {
-        const bbox = seg.getBoundingClientRect();
+      for (let i = 0; i < chromSegs.length; i++) {
+        const b = chromSegs[i].rect;
         if (
-          e.clientX >= bbox.left  - CHROM_PRIORITY_PX &&
-          e.clientX <= bbox.right + CHROM_PRIORITY_PX &&
-          e.clientY >= bbox.top   - CHROM_PRIORITY_PX &&
-          e.clientY <= bbox.bottom + CHROM_PRIORITY_PX
+          e.clientX >= b.left  - CHROM_PRIORITY_PX &&
+          e.clientX <= b.right + CHROM_PRIORITY_PX &&
+          e.clientY >= b.top   - CHROM_PRIORITY_PX &&
+          e.clientY <= b.bottom + CHROM_PRIORITY_PX
         ) {
-          return seg;
+          return chromSegs[i].el;
         }
       }
       return null;
     }
 
+    function isNearChromosome(e) {
+      return getChromosomeUnderCursor(e) !== null;
+    }
 
-    // Find which ribbon polygon (if any) the cursor is geometrically inside
+    // Find which ribbon polygon (if any) the cursor is geometrically inside.
+    // PERF: the screen->SVG matrix is identical for every polygon in this
+    // plot (they share the SVG's coordinate space), so it's computed once
+    // per call instead of once per polygon. A cheap local-space bbox check
+    // skips isPointInFill for the vast majority of polygons.
     function getRibbonUnderCursor(e) {
-      const polys = svg.querySelectorAll("polygon[data-id]");
-      for (let poly of polys) {
-        // Use SVG geometry: check if point is inside polygon
+      const ctm = svg.getScreenCTM();
+      if (ctm) {
+        const inv = ctm.inverse();
         const svgPt = svg.createSVGPoint();
         svgPt.x = e.clientX;
         svgPt.y = e.clientY;
-        try {
-          const localPt = svgPt.matrixTransform(poly.getScreenCTM().inverse());
-          if (poly.isPointInFill ? poly.isPointInFill(localPt) : false) {
-            return poly;
+        const localPt = svgPt.matrixTransform(inv);
+
+        for (let i = 0; i < ribbonPolys.length; i++) {
+          const poly = ribbonPolys[i];
+          const b = poly._bbox;
+          if (b) {
+            if (
+              localPt.x < b.x || localPt.x > b.x + b.width ||
+              localPt.y < b.y || localPt.y > b.y + b.height
+            ) {
+              continue; // cheap rejection, skip the expensive hit test
+            }
           }
-        } catch(err) { /* skip */ }
+          try {
+            if (poly.isPointInFill && poly.isPointInFill(localPt)) return poly;
+          } catch (err) { /* skip */ }
+        }
       }
       // Fallback: elementsFromPoint but skip if near a chromosome
       if (!isNearChromosome(e)) {
@@ -141,7 +174,16 @@ document.addEventListener("DOMContentLoaded", function() {
       return null;
     }
 
-container.addEventListener("mousemove", function(e) {
+    // ---------------------------------------------------------------
+    // PERF: throttle mousemove handling to once per animation frame.
+    // Native mousemove can fire far more often than the screen repaints;
+    // without this, the full hit-testing pipeline below runs many times
+    // per rendered frame for no visible benefit.
+    // ---------------------------------------------------------------
+    let pendingMoveEvent = null;
+    let moveRafScheduled = false;
+
+    function onMouseMove(e) {
       if (pinnedRibbonId) return; // frozen while pinned
 
       if (isNearChromosome(e)) {
@@ -155,7 +197,7 @@ container.addEventListener("mousemove", function(e) {
         const hoveredId = poly.getAttribute("data-id");
 
         // Highlight matching ribbons, dim others
-        svg.querySelectorAll("polygon[data-id]").forEach(function(p) {
+        ribbonPolys.forEach(function(p) {
           if (p.getAttribute("data-id") === hoveredId) {
             p.style.stroke = "black";
             p.style.strokeWidth = "1";
@@ -191,7 +233,20 @@ container.addEventListener("mousemove", function(e) {
         ribbonTip.style.display = "none";
         applyLegendState();
       }
-    }, true);
+    }
+
+    function scheduleMouseMove(e) {
+      pendingMoveEvent = e;
+      if (!moveRafScheduled) {
+        moveRafScheduled = true;
+        requestAnimationFrame(function() {
+          moveRafScheduled = false;
+          onMouseMove(pendingMoveEvent);
+        });
+      }
+    }
+
+    container.addEventListener("mousemove", scheduleMouseMove, true);
 
     container.addEventListener("mouseleave", function() {
       if (pinnedRibbonId) return;
@@ -208,6 +263,8 @@ container.addEventListener("mousemove", function(e) {
 
     const activeChromosomes = new Set();
 
+    // PERF: iterates the cached ribbonPolys array instead of re-querying
+    // the DOM for polygons on every call.
     function applyLegendState(omit_poly_id = null) {
         const activeBlockIds = new Set();
 
@@ -217,7 +274,7 @@ container.addEventListener("mousemove", function(e) {
             });
         });
 
-        svg.querySelectorAll("polygon[data-id]").forEach(function(poly) {
+        ribbonPolys.forEach(function(poly) {
             const bid = poly.getAttribute("data-id");
 
             if (omit_poly_id && omit_poly_id == bid) {
@@ -270,7 +327,7 @@ container.addEventListener("mousemove", function(e) {
       if (r.bottom > window.innerHeight) ribbonTip.style.top  = (e.clientY - r.height - 14) + "px";
 
       if (el.tagName && el.tagName.toLowerCase() === "polygon") {
-        svg.querySelectorAll("polygon[data-id]").forEach(function(p) {
+        ribbonPolys.forEach(function(p) {
           if (p.getAttribute("data-id") === pinnedRibbonId) {
             p.style.stroke = "black";
             p.style.strokeWidth = "1";

@@ -338,7 +338,7 @@ rule llm_instructions:
         )    
     shell:
         """
-        ntsynt_viz_generate-llm-markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
         """
 
 rule llm_instructions_tree:
@@ -355,5 +355,5 @@ rule llm_instructions_tree:
         )    
     shell:
         """
-        ntsynt_viz_generate-llm-markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
         """

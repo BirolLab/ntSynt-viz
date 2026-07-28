@@ -412,7 +412,7 @@ def main():
     """Generate a LLM markdown file for the ntSynt-viz ribbon plot"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("synteny_tsv")
-    parser.add_argument("--normalize", 
+    parser.add_argument("--normalize",
                         help="Path to normalization TSV (optional; "
                         "only needed if chromosomes were reverse-complemented during normalization)")
     parser.add_argument("-o", "--output", default="ribbon_plot_summary_context.md")

@@ -84,6 +84,8 @@ links_ntsynt <- read.csv(args$links,
                          sep = "\t", header = TRUE) %>%
   mutate(bin_id = str_replace_all(bin_id, "_", " "),
          bin_id2 = str_replace_all(bin_id2, "_", " "))
+target_genome <- links_ntsynt %>% head(1) %>% select(bin_id) %>% pull()
+print(paste("Target genome:", target_genome))
 links_ntsynt$seq_id <- factor(links_ntsynt$seq_id,
                               levels = input_chrom_order)
 links_ntsynt <- links_ntsynt %>% arrange(factor(seq_id, levels = input_chrom_order))
@@ -227,8 +229,9 @@ get_link_info <- function(p, block_coords) {
 }
 
 # Build chromosome -> block_id mapping (target genome seq_id only, as these appear in legend)
-build_js_map <- function(p) {
+build_js_map <- function(p, target_genome) {
   chrom_block_map <- pull_links(p) %>%
+    filter(bin_id == target_genome) %>%
     select(block_id, seq_id) %>%
     distinct() %>%
     group_by(seq_id) %>%
@@ -375,7 +378,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     )
 
   # Build map of chromosome -> block_id for interactive legend
-  js_map <- build_js_map(p)
+  js_map <- build_js_map(p, target_genome)
 
   return(list(plot = plot, js_map = js_map))
 }

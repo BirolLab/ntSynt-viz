@@ -89,6 +89,7 @@ SYNTENY_COLS = [
 
 @dataclass
 class SyntenyRow:
+    """Describes a row in the synteny TSV file"""
     block_id: int
     genome: str
     chrom: str
@@ -245,7 +246,7 @@ def inversion_summary(rows, genome_order, top_n=5):
 
     return per_genome, top, first_genome
 
-    
+
 def build_header():
     """Build the markdown header"""
     return [
@@ -347,7 +348,7 @@ def build_inversion_table(inv_per_genome, inv_top, first_genome):
     for row in inv_per_genome:
         pct = "N/A" if row["pct_inverted"] is None else f"{row['pct_inverted']}%"
         lines.append(f"| {row['genome']} | {row['inverted_length']} | {pct} |")
-        
+
     lines.extend(
         ["",
          f"**Largest individual inversions (top {len(inv_top)}):**\n",
@@ -408,13 +409,17 @@ def build_markdown(genome_order, norm_summary, chrom_results, inv_per_genome,
 
 
 def main():
+    """Generate a LLM markdown file for the ntSynt-viz ribbon plot"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("synteny_tsv")
-    parser.add_argument("--normalize", help="Path to normalization TSV (optional; only needed if chromosomes were reverse-complemented during normalization)")
+    parser.add_argument("--normalize", 
+                        help="Path to normalization TSV (optional; "
+                        "only needed if chromosomes were reverse-complemented during normalization)")
     parser.add_argument("-o", "--output", default="ribbon_plot_summary_context.md")
     parser.add_argument("--image", default=None, help="Path to companion PNG/PDF")
     parser.add_argument("--top-n", type=int, default=5)
-    parser.add_argument("--lengths", type=str, required=True, help="Path to TSV with headers bin_id,seq_id,length,relative_orientation")
+    parser.add_argument("--lengths", type=str, required=True,
+                        help="Path to TSV with headers bin_id,seq_id,length,relative_orientation")
     args = parser.parse_args()
 
     rows = load_synteny_tsv(args.synteny_tsv)

@@ -94,17 +94,19 @@ output_files = {
 
 rule all:
     input: output_files[format_img],
-            f"{prefix}_ribbon-plot.html"
+            f"{prefix}_ribbon-plot.html",
+            f"{prefix}_ribbon-plot_LLM-info.md",
 
-ouput_files_tree = {
+output_files_tree = {
         "png": f"{prefix}_ribbon-plot_tree.png",
         "pdf": f"{prefix}_ribbon-plot_tree.pdf",
         "svg": f"{prefix}_ribbon-plot_tree.svg",
     }
 
 rule gggenomes_ribbon_plot_tree:
-    input: ouput_files_tree[format_img],
-            f"{prefix}_ribbon-plot_tree.html"
+    input: output_files_tree[format_img],
+            f"{prefix}_ribbon-plot_tree.html",
+            f"{prefix}_ribbon-plot_tree_LLM-info.md"
 
 rule renaming:
     input: 
@@ -274,7 +276,8 @@ rule ribbon_plot:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = output_files[format_img],
+        out_img = output_files[format_img] if format_img != "png" else [],
+        out_png = output_files["png"],
         out_html = f"{prefix}_ribbon-plot.html"
     params:
         prefix = f"{prefix}_ribbon-plot",
@@ -302,7 +305,8 @@ rule ribbon_plot_tree:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = ouput_files_tree[format_img],
+        out_img = output_files_tree[format_img] if format_img != "png" else [],
+        out_png = output_files_tree["png"],
         out_html = f"{prefix}_ribbon-plot_tree.html"
     params:
         prefix = f"{prefix}_ribbon-plot_tree",
@@ -319,3 +323,37 @@ rule ribbon_plot_tree:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
         " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
+
+rule llm_instructions:
+    input: 
+        ribbon_png = rules.ribbon_plot.output.out_png, # png
+        chrom_oris = f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv" if normalize else [],
+        synteny_tsv = rules.sort_blocks.output.sorted_blocks,
+        chrom_lengths = rules.chrom_sorting.output.sorted_seqs,
+    output:
+        markdown = f"{prefix}_ribbon-plot_LLM-info.md"
+    params:
+        normalize_opt = lambda wc, input: (
+            f"--normalize {input.chrom_oris}" if normalize else ""
+        )    
+    shell:
+        """
+        ntsynt_viz_generate-llm-markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        """
+
+rule llm_instructions_tree:
+    input: 
+        ribbon_png = rules.ribbon_plot_tree.output.out_png, # png
+        chrom_oris = f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv" if normalize else [],
+        synteny_tsv = rules.sort_blocks.output.sorted_blocks,
+        chrom_lengths = rules.chrom_sorting.output.sorted_seqs,
+    output:
+        markdown = f"{prefix}_ribbon-plot_tree_LLM-info.md"
+    params:
+        normalize_opt = lambda wc, input: (
+            f"--normalize {input.chrom_oris}" if normalize else ""
+        )    
+    shell:
+        """
+        ntsynt_viz_generate-llm-markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        """

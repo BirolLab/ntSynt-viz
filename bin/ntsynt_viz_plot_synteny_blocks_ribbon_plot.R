@@ -453,13 +453,13 @@ if (args$format == "pdf") {
   ggsave(paste0(args$prefix, ".svg"), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
   cat(paste("Plot saved:", paste0(args$prefix, ".svg"), "\n"))
-} else {
-  png(paste0(args$prefix, ".png"), units = "cm", width = args$width, height = args$height,
-      res = args$dpi, bg = "white")
-  print(plots)
-  dev.off()
-  cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
-}
+} 
+png(paste0(args$prefix, ".png"), units = "cm", width = args$width, height = args$height,
+    res = args$dpi, bg = "white")
+print(plots)
+dev.off()
+cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
+
 
 
 # Prepare interactive HTML

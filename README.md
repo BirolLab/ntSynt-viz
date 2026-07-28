@@ -12,20 +12,22 @@
 4. [Installation](#install)
 5. [Usage](#usage)
 6. [Examples](#example)
-7. [Citing](#citing)
-8. [License](#license)
+7. [Interactive plots](#interactive-plots)
+8. [Citing](#citing)
+9. [License](#license)
 
 ## Credit  <a name=credit></a>
 Written by Lauren Coombe
 
 ## Description <a name=description></a>
-ntSynt-viz is an easy-to-use framework for generating ribbon plots combined with chromosome painting to visualize multi-genome synteny blocks. The tool is set-up to accept synteny blocks formatted in the [ntSynt](https://github.com/BirolLab/ntSynt) style, but any multi-genome synteny block file that adheres to the simple, BED-like TSV format of ntSynt can be visualized using ntSynt-viz.
+ntSynt-viz is an easy-to-use framework for generating static and interactive ribbon plots combined with chromosome painting to visualize multi-genome synteny blocks. The tool is set-up to accept synteny blocks formatted in the [ntSynt](https://github.com/BirolLab/ntSynt) style, but any multi-genome synteny block file that adheres to the simple, BED-like TSV format of ntSynt can be visualized using ntSynt-viz.
 
 This flexible framework implements numerous features, including:
 * Option to normalize the strands of input chromosomes based on a target assembly
 * Synteny-guided ordering of assemblies from top-to-bottom, based on an input tree structure or distance estimates from the synteny blocks
 * Sorting chromosomes right-to-left based on synteny to adjacent assemblies
 * Colouring both the ribbons and chromosomes based on the target (top) assembly chromosomes
+* Static and interactive ribbon plot outputs
 
 These features ensure that the output ribbon plots (powered by [gggenomes](https://thackl.github.io/gggenomes/)) are as easily understandable and as information-rich as possible.
 
@@ -68,8 +70,8 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--annotate-genome-info]
-                     [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
+                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI]
+                     [--annotate-genome-info] [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
 
@@ -100,7 +102,6 @@ main plot formatting arguments:
                         File listing haplotype assembly names: TSV, maternal/paternal assembly file names separated by tabs.
   --order ORDER         Optional file specifying the order of genomes in the ribbon plot. If supplied, will override synteny distance-based ordering. If --tree
                         supplied, the ordering must be compatible with the phylogenetic tree.
-  --no-arrow            Only used with --normalize; do not draw arrows indicating reverse-complementation
 
 block filtering arguments:
   --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]
@@ -120,6 +121,8 @@ output arguments:
   --dpi DPI             Resolution of output plot - png output only [300]
   --annotate-genome-info
                         Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
+  --optimize-ordering   Optimize tree-guided genome sorting using inversions. Only use with strictly bifurcating trees.
+  --no-arrow            Only used with --normalize; do not draw arrows indicating reverse-complementation
   --ribbon_adjust RIBBON_ADJUST
                         Ratio for adjusting spacing beside ribbon plot. Increase if ribbon plot labels are cut off, and decrease to reduce the white space to
                         the left of the ribbon plot [0.1]
@@ -148,6 +151,16 @@ For more information about the output files from ntSynt-viz, check out our [wiki
 
 ## Using ntSynt-viz with pangenome graphs or synteny blocks from tools other than ntSynt
 To visualize synteny information in pangenome graphs or from synteny block detection tools other than ntSynt, the synteny blocks simply need to be converted to the straightforward [ntSynt format](https://github.com/BirolLab/ntsynt?tab=readme-ov-file#output-files). For convenience, we also provide some scripts to do this conversion in the `conversion_scripts` directory.
+
+## Interactive plots
+As of v1.1.0, ntSynt-viz will output an HTML file to allow interactive exploration of the ribbon plot.
+
+Interactive elements include:
+- Hover/click on a ribbon to highlight the entire block and display more information
+- Hover/click on a chromosome to display more information
+- Click on a chromosome in the legend to highlight correseponding synteny blocks
+
+Example ribbon plot: XXX
 
 ## Citing <a name=citing></a>
 

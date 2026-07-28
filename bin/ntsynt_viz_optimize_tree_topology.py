@@ -275,6 +275,8 @@ def optimize_topology(
             )
 
     options = build_subtree_options(root, cost, target_genome)
+    for option in options:
+        print(option, file=sys.stderr)
     best_cost, _, _, best_order_tuple = min(options, key=lambda x: int(x[0]))
     best_order = list(best_order_tuple)
 

@@ -40,30 +40,49 @@ General: do not restate raw numbers verbatim from any table -- synthesize a
 trend instead, and do not enumerate every row.
 
 #### Companion image usage
-If a companion image of the ribbon plot is provided and you are able to view
-it, use it only for overall visual impression (e.g. density, general
-complexity) and to confirm whether specific table-derived events are
-discernible at the plot's scale. Do not estimate numbers from the image --
-rely on the tables for any numeric, comparative, or quantitative claims.
+Write the summary as a direct visual description of the companion image -- density,
+overall complexity, and any specific fusions, fissions, or inversions should be
+described as things seen in the plot, not as things reported in a table.
+The whole image should be considered, not just the top genome or a single chromosome.
+Use the tables only silently, in the background, to:
+- confirm that a visual feature is a genuine structural event and not a
+  rendering artifact,
+- obtain the correct chromosome/accession identifiers to name it,
+- decide whether an event is large enough to be worth describing.
 
-Before describing any table-derived event (fusion, fission, inversion) as
-notable or visually prominent, check the image to confirm it is large enough
-to be apparent at the plot's scale. If a real event is too small to be
-visible, still report it but explicitly note it is small-scale rather
-than calling it visually obvious. Conversely, if something is visually
-striking in the image, confirm with the tables which chromosome accession is
-responsible before naming it.
+Never reference the tables, the markdown file, or the act of cross-referencing
+in the output. Do not use phrases like "consistent with," "table-derived,"
+"the data shows," or similar meta-commentary -- state observations directly
+(e.g., "Chromosome 8 shows an inversion in Han1..." not "the table confirms
+an inversion consistent with...").
 
-When confirming that a table-derived event is visible in the image, state
-only whether it is discernible at the plot's scale. Acceptable: \"consistent
-with the [colour] segment visible on chromosome X.\" Do not characterize how
-visually prominent, striking, or subtle it appears -- see the general
-language rules below.
+If a genuine event documented in the tables is too small to be discernible in
+the image at this scale, omit it from the summary rather than describing an
+invisible feature -- unless it is among the most significant events overall,
+in which case describe it in general terms (e.g., "a smaller-scale inversion
+is also present on...") without claiming it's visible.
+
+If something appears visually prominent in the image, verify it against the
+tables before naming a specific chromosome/accession, but write the
+conclusion as a plain visual observation.
+
 
 #### Multi-genome framing 
 Remember that the comparisons are multi-genome, meaning that every synteny
 block contains coordinates from each genome -- there is no concept of
 separate pairwise comparisons when interpreting the plot.
+
+#### Reverse-complementation arrows are not structural variation
+Arrows under a chromosome are already explained in the image legend.
+Do not mention arrows in the summary at all -- not their presence,
+count, density, distribution, which genomes or chromosomes show them,
+or what they mean. Never use arrow count or frequency as evidence of
+structural variation, rearrangement, or any difference in genome
+quality/complexity between genomes, and never compare genomes' arrow
+patterns against each other, even indirectly (e.g., "several
+chromosomes required reorientation in X" is still off-limits).
+Arrows are a rendering/orientation detail for the reader to consult
+the legend on, not a summary-worthy feature.
 
 #### Phylogenetic tree rules
 If a phylogenetic tree is provided, derive all statements about which
@@ -75,7 +94,7 @@ inconsistent with the tree relationships, not to define them.
 #### General language rules
 Avoid non-scientific, unfalsifiable, or aesthetic language throughout,
 including superlatives (exceptional, amazing, remarkable) and subjective
-visual descriptors (modest, striking, subtle, understated).
+visual descriptors (modest, striking, subtle, understated, overwhelming).
 
 #### Disclaimer
 Always print a separate disclaimer that a human expert should review the

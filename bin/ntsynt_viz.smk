@@ -335,10 +335,11 @@ rule llm_instructions:
     params:
         normalize_opt = lambda wc, input: (
             f"--normalize {input.chrom_oris}" if normalize else ""
-        )    
+        ),
+        top_n = max(50, len(fais)*2)
     shell:
         """
-        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --top-n {params.top_n} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
         """
 
 rule llm_instructions_tree:
@@ -352,8 +353,9 @@ rule llm_instructions_tree:
     params:
         normalize_opt = lambda wc, input: (
             f"--normalize {input.chrom_oris}" if normalize else ""
-        )    
+        ),
+        top_n = max(50, len(fais)*2)
     shell:
         """
-        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --top-n {params.top_n} --image {input.ribbon_png} --top-n 50 --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
         """

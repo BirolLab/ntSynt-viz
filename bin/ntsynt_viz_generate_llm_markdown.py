@@ -12,6 +12,33 @@ from pathlib import Path
 
 LLM_INSTRUCTIONS = """
 ## Instructions
+#### Companion image is required -- check this first
+Before doing anything else, check the "Companion Image" section near
+the end of this file. This summary is a visual description of that
+image and cannot be produced from the tables alone.
+
+- If a filename is given and the image is genuinely available to you
+  (attached directly to the conversation, or present on disk -- e.g.
+  in the same directory as this markdown file, if you have filesystem
+  access) -- proceed normally with the instructions below.
+- If a filename is given but you cannot actually access it (nothing
+  attached, and no such file found on disk), do NOT guess at its
+  contents and do NOT fall back to a tables-only summary. Output
+  nothing but a short request asking the user to provide the image
+  file named in that section (e.g. by attaching it alongside this
+  markdown file, or placing it in the same directory), then stop.
+- If the section states no image was provided at all, respond the
+  same way: ask the user to supply the companion image before a
+  summary can be produced, and stop there.
+
+This commonly happens when this markdown file is uploaded on its own
+to a browser-based chat interface and the referenced image file was
+not also attached -- treat that exactly like the "not accessible"
+case above: ask for the image, do not proceed without it.
+
+Do not write any part of the manuscript summary in either of the
+last two cases above, even a partial or caveated one.
+
 #### Output format
 The tables below describe a multi-genome synteny (ribbon plot) comparison,
 for use in a scientific manuscript. Using ONLY the data provided, write
@@ -478,25 +505,25 @@ def build_inversion_table(inv_per_genome, inv_top, first_genome):
 def build_companion_image(image_path):
     """Build companion image section"""
     lines = [
-        "## Companion Image (optional)",
+        "## Companion Image",
         "",
     ]
 
     if image_path:
-        lines.append(f"`{image_path}`")
+        lines.append(f"Filename: `{image_path}`")
+        lines.append("")
+        lines.append(
+            "This file must be attached alongside this markdown file (or, "
+            "for a filesystem-capable LLM, present in the same directory) "
+            "in order to produce a summary -- see the instructions above."
+        )
     else:
-        lines.append("Not provided.")
+        lines.append(
+            "Not provided. A summary cannot be produced without a "
+            "companion image -- see the instructions above."
+        )
 
-    lines.extend([
-        "",
-        """
-If available, provide this alongside the markdown file to a
-vision-capable LLM for an additional, purely qualitative visual
-impression -- it is not required to produce a valid summary.
-        """,
-        "",
-    ])
-
+    lines.append("")
     return lines
 
 
@@ -530,11 +557,22 @@ def main():
                         help="Path to normalization TSV (optional; "
                         "only needed if chromosomes were reverse-complemented during normalization)")
     parser.add_argument("-o", "--output", default="ribbon_plot_summary_context.md")
-    parser.add_argument("--image", default=None, help="Path to companion PNG/PDF")
+    parser.add_argument("--image", required=True,
+                        help="Path to companion PNG/PDF (required -- the "
+                        "markdown file is not written without it)")
     parser.add_argument("--top-n", type=int, default=5)
     parser.add_argument("--lengths", type=str, required=True,
                         help="Path to TSV with headers bin_id,seq_id,length,relative_orientation")
     args = parser.parse_args()
+
+    if not Path(args.image).is_file():
+        parser.error(
+            f"Companion image not found at '{args.image}'. "
+            "This pipeline will not generate a markdown context file "
+            "without a valid companion image, since the summary "
+            "instructions require it -- generate the ribbon plot image "
+            "first, or pass its correct path with --image."
+        )
 
     rows = load_synteny_tsv(args.synteny_tsv)
     norm_rows = []

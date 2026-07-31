@@ -16,11 +16,28 @@ LLM_INSTRUCTIONS = """
 The tables below describe a multi-genome synteny (ribbon plot) comparison,
 for use in a scientific manuscript. Using ONLY the data provided, write
 2-3 sentences in clear, formal, manuscript-appropriate language summarizing
-overall structural trends: whether the genomes are largely collinear/
-syntenic or show substantial structural rearrangement; any notable
-large-scale fusions/fissions and which genomes are involved; and any
-standout individual inversions or genomes with a disproportionate share
-of inversion relative to the others.
+overall structural trends: the overall degree of synteny coverage/density
+(how much of each genome is captured in synteny blocks); whether the blocks that are present
+are largely collinear or show substantial structural rearrangement; any
+notable large-scale fusions/fissions and which genomes are involved; and (optionally)
+any standout individual inversions or genomes with a disproportionate
+share of inversion relative to the others.
+
+Coverage/density and collinearity are two separate, both-reportable
+questions -- do not let one substitute for the other. A set of genomes
+can have blocks that stay in consistent order (collinear) while still
+covering only a small, fragmented fraction of each chromosome's length
+(low coverage), or vice versa. If coverage is low, sparse, or highly
+variable across genomes, state this explicitly as a primary trend --
+do not omit it in favor of describing rearrangement/order alone.
+
+#### Synteny coverage / density description rules
+Use the coverage table below (per-genome total syntenic length vs.
+assembly length vs. % covered) to ground any statement about coverage.
+Describe the overall pattern (e.g., coverage is low/high across most
+genomes, or coverage varies substantially by genome/clade) rather than
+listing each genome's percentage. Only call out an individual genome's
+coverage figure if it stands out as a clear outlier from the rest.
 
 #### Fusion / fission description rules
 When describing a specific fusion or fission, always name the chromosome
@@ -40,13 +57,25 @@ General: do not restate raw numbers verbatim from any table -- synthesize a
 trend instead, and do not enumerate every row.
 
 #### Companion image usage
-Write the summary as a direct visual description of the companion image -- density,
-overall complexity, and any specific fusions, fissions, or inversions should be
-described as things seen in the plot, not as things reported in a table.
+Write the summary as a direct visual description of the companion image --
+coverage/density, overall complexity, and any specific fusions, fissions,
+or inversions should be described as things seen in the plot, not as
+things reported in a table.
 The whole image should be considered, not just the top genome or a single chromosome.
+
+When assessing coverage/density visually, note whether ribbons run
+near-continuously along the full length of each chromosome bar (high
+coverage) or appear as thin, scattered segments separated by substantial
+uncolored/gray gaps (low coverage). This is a distinct, reportable
+feature in its own right, separate from whether ribbons cross
+(inversion) or split (fusion/fission) -- a plot can show clean,
+uncrossed ribbons that still cover only a small fraction of each bar,
+and that sparseness should be described rather than treated as
+"collinear" or left unmentioned.
+
 Use the tables only silently, in the background, to:
-- confirm that a visual feature is a genuine structural event and not a
-  rendering artifact,
+- confirm that a visual feature (including apparent low coverage) is
+  genuine and not a rendering artifact,
 - obtain the correct chromosome/accession identifiers to name it,
 - decide whether an event is large enough to be worth describing.
 
@@ -71,6 +100,9 @@ conclusion as a plain visual observation.
 Remember that the comparisons are multi-genome, meaning that every synteny
 block contains coordinates from each genome -- there is no concept of
 separate pairwise comparisons when interpreting the plot.
+In addition, the synteny blocks were generated using 
+an alignment-free approach, so always avoid any mention of 
+alignments (aligned, unaligned, etc.).
 
 #### Reverse-complementation arrows are not structural variation
 Arrows under a chromosome are already explained in the image legend.
@@ -233,6 +265,36 @@ def chromosome_correspondence(rows, genome_order, chrom_lengths):
     return results
 
 
+def coverage_summary(rows, chrom_lengths, genome_order):
+    """Per-genome total syntenic length (bp of that genome's own
+    chromosomes covered by at least one synteny block) vs. that genome's
+    total assembly length, expressed as a % covered.
+
+    This is distinct from the chromosome correspondence table: it answers
+    "how much of this genome is in a synteny block at all," not "how do
+    two genomes' chromosomes map onto each other."
+    """
+    syntenic_totals = defaultdict(int)
+    for r in rows:
+        syntenic_totals[r.genome] += (r.end - r.start)
+
+    results = []
+    for genome in genome_order:
+        assembly_length = sum(chrom_lengths.get(genome, {}).values())
+        syntenic_length = syntenic_totals.get(genome, 0)
+        pct = (
+            round(100 * syntenic_length / assembly_length, 1)
+            if assembly_length > 0 else None
+        )
+        results.append({
+            "genome": genome,
+            "assembly_length": assembly_length,
+            "syntenic_length": syntenic_length,
+            "pct_covered": pct,
+        })
+    return results
+
+
 def inversion_summary(rows, genome_order, top_n=5):
     """Per-genome proportion of syntenic length that is inverted relative
     to the first genome in the provided order (strand '-'), plus the
@@ -286,17 +348,20 @@ def build_about_section(first_genome):
     about_text = f"""
 ## About this plot
 This data describes a multi-genome synteny comparison. A **synteny
-block** is a genomic region conserved between genomes; an **inversion**
-is a block in reversed orientation relative to {first_genome}, the
-first-listed genome (chosen only for its position in the input order,
-not as a biological reference); a **fusion/fission** is a case where
-regions from one chromosome in one genome correspond to multiple
-chromosomes in another.
+block** is a genomic region conserved between genomes; **coverage/
+density** refers to what fraction of a genome's total length is
+captured in synteny blocks at all, independent of block order; an
+**inversion** is a block in reversed orientation relative to
+{first_genome}, the first-listed genome (chosen only for its position
+in the input order, not as a biological reference); a **fusion/
+fission** is a case where regions from one chromosome in one genome
+correspond to multiple chromosomes in another.
 
 If a companion image is provided: each chromosome in the top genome is assigned a distinct
 color; ribbon width corresponds to syntenic block length; a
-twisted/crossed ribbon indicates an inverted block; genomes are
-arranged in the order listed below.
+twisted/crossed ribbon indicates an inverted block; uncolored/gray
+regions of a chromosome bar are not captured in any synteny block;
+genomes are arranged in the order listed below.
 Optionally, a phylogenetic tree is rendered to the left of the ribbon plot.
 Arrows under chromosomes indicate reverse complementation during normalization (also optional).
     """
@@ -328,6 +393,35 @@ def build_genome_table(genome_order, norm_summary):
 
     lines.append("")
     return lines
+
+
+def build_coverage_table(coverage_results):
+    """Build synteny coverage/density table for markdown"""
+    lines = [
+        "## Synteny Coverage Summary",
+        "",
+        "Per-genome total length captured in synteny blocks, relative to "
+        "assembly length. Distinct from the chromosome correspondence "
+        "table below: this measures how much of each genome participates "
+        "in any synteny block at all, not how chromosomes map onto each "
+        "other.",
+        "",
+        "| Genome | Assembly Length | Total Syntenic Length | % Covered |",
+        "|---|---|---|---|",
+    ]
+
+    for row in coverage_results:
+        pct = "N/A" if row["pct_covered"] is None else f"{row['pct_covered']}%"
+        lines.append(
+            f"| {row['genome']} | "
+            f"{row['assembly_length']} | "
+            f"{row['syntenic_length']} | "
+            f"{pct} |"
+        )
+
+    lines.append("")
+    return lines
+
 
 def build_chromosome_table(chrom_results):
     """Build chromosome correspondence table for markdown"""
@@ -406,13 +500,14 @@ impression -- it is not required to produce a valid summary.
     return lines
 
 
-def build_markdown(genome_order, norm_summary, chrom_results, inv_per_genome,
-    inv_top, first_genome, image_path=None,):
+def build_markdown(genome_order, norm_summary, coverage_results, chrom_results,
+    inv_per_genome, inv_top, first_genome, image_path=None,):
     """Build the markdown file"""
     sections = [
         build_header(),
         [LLM_INSTRUCTIONS],
         build_about_section(first_genome),
+        build_coverage_table(coverage_results),
         build_genome_table(genome_order, norm_summary),
         build_chromosome_table(chrom_results),
         build_inversion_table(inv_per_genome, inv_top, first_genome),
@@ -450,9 +545,10 @@ def main():
     chrom_lengths = read_lengths_tsv(args.lengths)
 
     chrom_results = chromosome_correspondence(rows, genome_order, chrom_lengths)
+    coverage_results = coverage_summary(rows, chrom_lengths, genome_order)
     inv_per_genome, inv_top, first_genome = inversion_summary(rows, genome_order, top_n=args.top_n)
 
-    md = build_markdown(genome_order, norm_summary, chrom_results,
+    md = build_markdown(genome_order, norm_summary, coverage_results, chrom_results,
                          inv_per_genome, inv_top, first_genome, image_path=args.image)
 
     Path(args.output).write_text(md, encoding="utf-8")

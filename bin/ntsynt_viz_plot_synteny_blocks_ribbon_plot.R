@@ -498,15 +498,25 @@ interactive_plot <- girafe(
         "border: 1px solid black;",
         "border-radius: 4px;",
         "font-family: monospace;",
-        "font-size: 10px;"
+        "font-size: 16px;"
       )
     )
   )
 )
 
+# Inject CSS to ensure the interactive plot fills a browser window
+css_override <- paste(
+  "<style>",
+  ".girafe.html-widget { width: 100% !important; height: 90vh !important; }",
+  "</style>",
+  sep = "\n"
+)
+
 html_file <- paste0(args$prefix, ".html")
 htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = args$prefix)
 html_content <- readLines(html_file, warn = FALSE)
+head_close <- which(grepl("</head>", html_content))
+html_content <- append(html_content, css_override, after = head_close - 1)
 body_close <- which(grepl("</body>", html_content))
 html_content <- append(html_content, js_inject, after = body_close - 1)
 writeLines(html_content, html_file)

@@ -71,10 +71,10 @@ document.addEventListener("DOMContentLoaded", function() {
       "border:1px solid black",
       "border-radius:4px",
       "font-family:monospace",
-      "font-size:10px",
+      "font-size:16px",
       "pointer-events:none",
       "z-index:9999",
-      "max-width:400px"
+      "max-width:600px"
     ].join(";");
 
     const contentDiv = document.createElement("div");
@@ -84,8 +84,8 @@ document.addEventListener("DOMContentLoaded", function() {
     controlsDiv.className = "ribbon-tip-controls";
     controlsDiv.style.cssText = "display:none;margin-top:6px;text-align:right;";
     controlsDiv.innerHTML =
-      '<button class="ribbon-tip-copy" style="font-size:9px;margin-right:4px;">Copy</button>' +
-      '<button class="ribbon-tip-close" style="font-size:9px;">✕</button>';
+      '<button class="ribbon-tip-copy" style="font-size:14px;margin-right:4px;">Copy</button>' +
+      '<button class="ribbon-tip-close" style="font-size:14px;">✕</button>';
 
     ribbonTip.appendChild(contentDiv);
     ribbonTip.appendChild(controlsDiv);

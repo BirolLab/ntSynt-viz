@@ -162,6 +162,15 @@ Interactive elements include:
 
 Example ribbon plot: XXX
 
+<video src="https://github.com/user-attachments/assets/d8263726-b1dc-48c6-8ec0-fd60021add84"
+       autoplay
+       loop
+       muted
+       playsinline
+       width="100%">
+</video>
+
+
 ## Citing <a name=citing></a>
 
 Thank you for your [![Stars](https://img.shields.io/github/stars/BirolLab/ntSynt-viz.svg)](https://github.com/BirolLab/ntSynt-viz/stargazers) and for using and promoting this free software! We hope that ntSynt-viz (& ntSynt) is useful to you and your research.

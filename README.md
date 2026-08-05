@@ -160,7 +160,7 @@ Interactive elements include:
 * Hover/click on a chromosome to display ID and length
 * Click on one or more chromosomes in the legend to highlight the correseponding synteny blocks
 
-Example ribbon plot: XXX
+Example ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
 
 <video src="https://github.com/user-attachments/assets/d8263726-b1dc-48c6-8ec0-fd60021add84"
        autoplay

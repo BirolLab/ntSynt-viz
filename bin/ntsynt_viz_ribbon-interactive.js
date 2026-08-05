@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "font-size:16px",
       "pointer-events:none",
       "z-index:9999",
-      "max-width:600px"
+      "max-width:900px"
     ].join(";");
 
     const contentDiv = document.createElement("div");

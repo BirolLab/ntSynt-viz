@@ -510,7 +510,8 @@ def build_inversion_table(inv_per_genome, inv_top, first_genome):
          ]
         )
     for row in inv_top:
-        lines.append(f"| {row.genome.replace('_', ' ')} | {row.chrom} | {row.start}-{row.end} | {row.end - row.start} |")
+        lines.append(f"| {row.genome.replace('_', ' ')} | {row.chrom} "
+                     f"| {row.start}-{row.end} | {row.end - row.start} |")
     lines.append("")
 
     return lines

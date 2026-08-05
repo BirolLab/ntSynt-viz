@@ -160,7 +160,7 @@ Interactive elements include:
 * Hover/click on a chromosome to display ID and length
 * Click on one or more chromosomes in the legend to highlight the correseponding synteny blocks
 
-Example ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
+Example interactive ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
 
 <video src="https://github.com/user-attachments/assets/d8263726-b1dc-48c6-8ec0-fd60021add84"
        autoplay
@@ -178,7 +178,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/BirolLab/ntSynt
 
 If you use nSynt-viz, please cite:
 
-Coombe L, Kazemi P, Wong J, Birol I, Warren RL. 2025. multi-genome synteny detection using minimizer graph mappings. BMC Biology. 23:367. https://doi.org/10.1186/s12915-025-02455-w
+Coombe L, Kazemi P, Wong J, Birol I, Warren RL. 2025. ntSynt: multi-genome synteny detection using minimizer graph mappings. BMC Biology. 23:367. https://doi.org/10.1186/s12915-025-02455-w
 
 and
 

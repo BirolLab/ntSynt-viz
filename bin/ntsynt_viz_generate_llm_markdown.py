@@ -155,9 +155,20 @@ Avoid non-scientific, unfalsifiable, or aesthetic language throughout,
 including superlatives (exceptional, amazing, remarkable) and subjective
 visual descriptors (modest, striking, subtle, understated, overwhelming).
 
-#### Disclaimer
+#### Disclaimer (MANDATORY)
 Always print a separate disclaimer that a human expert should review the
 summary before including it in a presentation or publication.
+
+#### Before writing anything, confirm all of the following:
+- [ ] Companion image is accessible (or you've stopped and asked for it)
+- [ ] Summary covers at least 3 of: coverage/density, collinearity, fusions/fissions, notable inversions
+- [ ] No arrows mentioned
+- [ ] No mention of alignments
+- [ ] Fusion/fission chromosome accessions named if a specific event is described
+- [ ] No raw numbers/percentages restated verbatim
+- [ ] No table/markdown-file references in the output
+- [ ] No superlatives or subjective visual language
+- [ ] Disclaimer included at the end of the output
 """
 
 SYNTENY_COLS = [
@@ -252,7 +263,7 @@ def normalization_summary(norm_rows):
         counts[row["genome"]][1] += 1
         if row["relative_orientation"] == "-":
             counts[row["genome"]][0] += 1
-    return {genome: tuple(v) for genome, v in counts.items()}
+    return {genome.replace("_", " "): tuple(v) for genome, v in counts.items()}
 
 
 def chromosome_correspondence(rows, genome_order, chrom_lengths):
@@ -283,10 +294,12 @@ def chromosome_correspondence(rows, genome_order, chrom_lengths):
                 pair_totals[(chrom_a, chrom_b)] += length_a
 
             for (chrom_a, chrom_b), bp in pair_totals.items():
+                if chrom_a not in chrom_lengths[ga] or chrom_b not in chrom_lengths[gb]:
+                    continue
                 pct = 100 * bp / chrom_lengths[ga][chrom_a]
                 results.append({
-                    "genome_a": ga, "chrom_a": chrom_a,
-                    "genome_b": gb, "chrom_b": chrom_b,
+                    "genome_a": ga.replace("_", " "), "chrom_a": chrom_a,
+                    "genome_b": gb.replace("_", " "), "chrom_b": chrom_b,
                     "syntenic_bp": bp, "pct_of_chrom_a": round(pct, 1),
                 })
     return results
@@ -314,7 +327,7 @@ def coverage_summary(rows, chrom_lengths, genome_order):
             if assembly_length > 0 else None
         )
         results.append({
-            "genome": genome,
+            "genome": genome.replace("_", " "),
             "assembly_length": assembly_length,
             "syntenic_length": syntenic_length,
             "pct_covered": pct,
@@ -341,7 +354,7 @@ def inversion_summary(rows, genome_order, top_n=5):
         inv_len = inverted_totals.get(genome, 0)
         pct = round(100 * inv_len / total_len, 1) if total_len > 0 else None
         per_genome.append({
-            "genome": genome,
+            "genome": genome.replace("_", " "),
             "inverted_length": inv_len,
             "pct_inverted": pct,
         })
@@ -416,7 +429,7 @@ def build_genome_table(genome_order, norm_summary):
                 else f"{flipped}/{total} chromosomes reverse-complemented during normalization"
             )
 
-        lines.append(f"| {i} | {genome} | {note} |")
+        lines.append(f"| {i} | {genome.replace('_', ' ')} | {note} |")
 
     lines.append("")
     return lines
@@ -497,7 +510,7 @@ def build_inversion_table(inv_per_genome, inv_top, first_genome):
          ]
         )
     for row in inv_top:
-        lines.append(f"| {row.genome} | {row.chrom} | {row.start}-{row.end} | {row.end - row.start} |")
+        lines.append(f"| {row.genome.replace('_', ' ')} | {row.chrom} | {row.start}-{row.end} | {row.end - row.start} |")
     lines.append("")
 
     return lines
@@ -505,6 +518,19 @@ def build_inversion_table(inv_per_genome, inv_top, first_genome):
 def build_companion_image(image_path):
     """Build companion image section"""
     lines = [
+        """
+## Reminder of instructions
+#### Before writing anything, confirm all of the following:
+ - [ ] Companion image is accessible (or you've stopped and asked for it)
+- [ ] Summary covers at least 3 of: coverage/density, collinearity, fusions/fissions, notable inversions
+- [ ] No arrows mentioned
+- [ ] No mention of alignments
+- [ ] Fusion/fission chromosome accessions named if a specific event is described
+- [ ] No raw numbers/percentages restated verbatim
+- [ ] No table/markdown-file references in the output
+- [ ] No superlatives or subjective visual language
+- [ ] Disclaimer included at the end of the output
+        """,
         "## Companion Image",
         "",
     ]

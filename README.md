@@ -36,6 +36,7 @@ These features ensure that the output ribbon plots (powered by [gggenomes](https
 * [intervaltree](https://github.com/chaimleib/intervaltree)
 * [snakemake](https://github.com/snakemake/snakemake)
 * [quicktree](https://github.com/khowe/quicktree)
+* [biopython](https://biopython.org/)
 * R packages:
   * [gggenomes >=1.1.0](https://github.com/thackl/gggenomes)
   * [treeio](https://www.bioconductor.org/packages/release/bioc/html/treeio.html)
@@ -51,7 +52,7 @@ These features ensure that the output ribbon plots (powered by [gggenomes](https
   * [ggplot2](https://ggplot2.tidyverse.org)
   * [svglite](https://cran.r-project.org/web/packages/svglite/index.html)
   * [ggiraph](https://davidgohel.github.io/ggiraph/)
-  * [biopython](https://biopython.org/)
+
 
 ### Installing ntSynt-viz using conda <a name=install></a>
 ```

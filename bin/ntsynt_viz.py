@@ -67,7 +67,7 @@ def main():
                         action="store_true")
     block_filter_group.add_argument("--indel", help="Indel size threshold [50000]", default=50000, type=int)
     block_filter_group.add_argument("--length", help="Minimum synteny block length [100000]", default=100000, type=int)
-    block_filter_group.add_argument("--seq_length", help="Minimum sequence length [500000]", default=500000, type=float)
+    block_filter_group.add_argument("--seq_length", help="Minimum sequence length [500000]", default=500000, type=int)
     block_filter_group.add_argument("--keep", help="List of genome_name:chromosome to show in visualization. "
                                     "All chromosomes with links to the specified chromosomes will also be shown.",
                                     nargs="+", required=False, type=str)
@@ -100,7 +100,11 @@ def main():
                               help="Add annotations about number of sequences "
                                   "and genome size to the right of each genome in the ribbon plot",
                               action="store_true")
-    main_formatting_group.add_argument("--no-arrow", help="Only used with --normalize; "
+    output_group.add_argument("--optimize-ordering",
+                              help="Optimize tree-guided genome sorting using inversions. "
+                              "Only use with strictly bifurcating trees.",
+                              action="store_true")
+    output_group.add_argument("--no-arrow", help="Only used with --normalize; "
                         "do not draw arrows indicating reverse-complementation",
                         action="store_true")
     output_group.add_argument(
@@ -126,6 +130,8 @@ def main():
 
     if len(args.fais) == 1:
         args.fais = read_fai_files(args.fais[0])
+
+    print(f"Running ntSynt-viz {NTSYNT_VIZ_VERSION}...", flush=True)
 
     cmd = f"snakemake -s {base_dir}/ntsynt_viz.smk " \
             f"--cores 2 " \
@@ -162,6 +168,8 @@ def main():
         cmd += f"order={args.order} "
     if args.annotate_genome_info:
         cmd += "annotate_genome_info=True "
+    if args.optimize_ordering:
+        cmd += "optimize_ordering=True "
     if args.tree:
         cmd += f"tree={args.tree} "
         target = "gggenomes_ribbon_plot_tree"

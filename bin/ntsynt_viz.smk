@@ -30,6 +30,8 @@ res = config.get("dpi", 300)
 orders = config.get("order", [])
 annotate_genome_info = config.get("annotate_genome_info", False)
 
+optimize_ordering = config.get("optimize_ordering", False)
+
 def sort_fais(fai_list, name_conversion, orders):
     "Based on the name conversion TSV, sort the FAIs based on orders"
     # Read in name conversions
@@ -91,16 +93,20 @@ output_files = {
     }
 
 rule all:
-    input: output_files[format_img]
+    input: output_files[format_img],
+            f"{prefix}_ribbon-plot.html",
+            f"{prefix}_ribbon-plot_LLM-info.md",
 
-ouput_files_tree = {
+output_files_tree = {
         "png": f"{prefix}_ribbon-plot_tree.png",
         "pdf": f"{prefix}_ribbon-plot_tree.pdf",
         "svg": f"{prefix}_ribbon-plot_tree.svg",
     }
 
 rule gggenomes_ribbon_plot_tree:
-    input: ouput_files_tree[format_img]
+    input: output_files_tree[format_img],
+            f"{prefix}_ribbon-plot_tree.html",
+            f"{prefix}_ribbon-plot_tree_LLM-info.md"
 
 rule renaming:
     input: 
@@ -143,15 +149,25 @@ rule make_nj_tree:
 
 rule cladogram:
     input:
-        rules.make_nj_tree.output
+        tree = rules.make_nj_tree.output,
+        blocks = rules.renaming.output.renamed_blocks
     output:
         orders_tmp = temp(f"{prefix}_est-distances.order_tmp.tsv"),
         nwk_tmp = temp(f"{prefix}_est-distances_tmp.cladogram.nwk")
     params:
         prefix = f"{prefix}_est-distances",
         target = f"--target {target_genome}" if target_genome else ""
-    shell:
-        "ntsynt_viz_distance_cladogram.R --nwk {input} -p {params.prefix} --update_nwk {params.target}" 
+    run:
+        if optimize_ordering:
+            shell("""
+                set -eux -o pipefail
+                ntsynt_viz_distance_cladogram.R --nwk {input.tree} -p {params.prefix} --update_nwk {params.target}
+                ntsynt_viz_optimize_tree_topology.py --blocks {input.blocks} --tree {output.nwk_tmp} --out-order {output.orders_tmp} \
+                    --out-tree tmp_tree.nwk {params.target}
+                mv tmp_tree.nwk {output.nwk_tmp}
+                """)
+        else:
+            shell("set -eux -o pipefail; ntsynt_viz_distance_cladogram.R --nwk {input.tree} -p {params.prefix} --update_nwk {params.target}")
 
 rule orders:
     input: 
@@ -185,7 +201,7 @@ rule sort_blocks:
     output:
         sorted_blocks = f"{blocks_no_suffix}.renamed.sorted.blocks.tsv",
         intermediate_blocks = temp(f"{blocks_no_suffix}.renamed.sorted-tmp.tsv") if normalize else [],
-        chrom_oris = temp(f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv") if normalize else []
+        chrom_oris = f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv" if normalize else []
     params:
         intermediate_blocks = f"{blocks_no_suffix}.renamed.sorted-tmp.tsv",
         name_conversion = f"-c {name_conversion}" if name_conversion else "",
@@ -250,7 +266,7 @@ rule chrom_paint:
     input: links = rules.gggenomes_files.output.links
     output: colour_feats = f"{prefix}.chrom-paint-feats.tsv"
     shell:
-        '''cat {input.links} |perl -ne 'chomp; @a=split("\t"); if(!defined $ct){{print "block_id\tseq_id\tbin_id\tstart\tend\tcolour_block\n"; $ct=1}} else {{print "$a[0]\t$a[1]\t$a[2]\t$a[3]\t$a[4]\t$a[10]\n"; print "$a[0]\t$a[5]\t$a[6]\t$a[7]\t$a[8]\t$a[10]\n";}}' > {output.colour_feats}'''
+        '''cat {input.links} |perl -ne 'chomp; @a=split("\t"); if(!defined $ct){{print "block_id\tseq_id\tbin_id\tstart\tend\tcolour_block\n"; $ct=1}} else {{print "$a[0]\t$a[1]\t$a[2]\t$a[3]\t$a[4]\t$a[12]\n"; print "$a[0]\t$a[5]\t$a[6]\t$a[7]\t$a[8]\t$a[12]\n";}}' > {output.colour_feats}'''
 
 rule ribbon_plot:
     input: 
@@ -260,7 +276,9 @@ rule ribbon_plot:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = output_files[format_img]
+        out_img = output_files[format_img] if format_img != "png" else [],
+        out_png = output_files["png"],
+        out_html = f"{prefix}_ribbon-plot.html"
     params:
         prefix = f"{prefix}_ribbon-plot",
         ratio = ribbon_ratio,
@@ -287,7 +305,9 @@ rule ribbon_plot_tree:
         haplotypes = rules.nudges.output.nudges if haplotypes else [],
         colour_seqs = rules.chrom_sorting.output.colour_info
     output:
-        out_img = ouput_files_tree[format_img]
+        out_img = output_files_tree[format_img] if format_img != "png" else [],
+        out_png = output_files_tree["png"],
+        out_html = f"{prefix}_ribbon-plot_tree.html"
     params:
         prefix = f"{prefix}_ribbon-plot_tree",
         ratio = ribbon_ratio,
@@ -303,3 +323,39 @@ rule ribbon_plot_tree:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
         " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
+
+rule llm_instructions:
+    input: 
+        ribbon_png = rules.ribbon_plot.output.out_png, # png
+        chrom_oris = f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv" if normalize else [],
+        synteny_tsv = rules.sort_blocks.output.sorted_blocks,
+        chrom_lengths = rules.chrom_sorting.output.sorted_seqs,
+    output:
+        markdown = f"{prefix}_ribbon-plot_LLM-info.md"
+    params:
+        normalize_opt = lambda wc, input: (
+            f"--normalize {input.chrom_oris}" if normalize else ""
+        ),
+        top_n = max(50, len(fais)*2)
+    shell:
+        """
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --top-n {params.top_n} --image {input.ribbon_png} --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        """
+
+rule llm_instructions_tree:
+    input: 
+        ribbon_png = rules.ribbon_plot_tree.output.out_png, # png
+        chrom_oris = f"{blocks_no_suffix}.renamed.sorted.chrom-orientations.tsv" if normalize else [],
+        synteny_tsv = rules.sort_blocks.output.sorted_blocks,
+        chrom_lengths = rules.chrom_sorting.output.sorted_seqs,
+    output:
+        markdown = f"{prefix}_ribbon-plot_tree_LLM-info.md"
+    params:
+        normalize_opt = lambda wc, input: (
+            f"--normalize {input.chrom_oris}" if normalize else ""
+        ),
+        top_n = max(50, len(fais)*2)
+    shell:
+        """
+        ntsynt_viz_generate_llm_markdown.py -o {output.markdown} --top-n {params.top_n} --image {input.ribbon_png} --top-n 50 --lengths {input.chrom_lengths} {params.normalize_opt} {input.synteny_tsv}
+        """

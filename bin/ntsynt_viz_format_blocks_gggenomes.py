@@ -94,7 +94,7 @@ def make_links_file(synteny_file, prefix, valid_blocks_set, target_assembly):
     target_assembly_chrom = None
     with open(f"{prefix}.links.tsv", 'w', encoding="utf-8") as fout:
         fout.write("block_id\tseq_id\tbin_id\tstart\tend\t"\
-                    "seq_id2\tbin_id2\tstart2\tend2\tstrand\tcolour_block\n")
+                    "seq_id2\tbin_id2\tstart2\tend2\tstrand\tstrand1\tstrand2\tcolour_block\n")
         with open(synteny_file, 'r', encoding="utf-8") as fin:
             for line in fin:
                 line = line.strip().split("\t")
@@ -104,7 +104,8 @@ def make_links_file(synteny_file, prefix, valid_blocks_set, target_assembly):
                     start_curr, end_curr = curr_block.start, curr_block.end
                     relative_ori = "-" if curr_block.strand != prev_line.strand else "+"
                     out_line = f"{curr_block.id}\t{prev_line.chrom}\t{prev_line.genome}\t{start_prev}\t{end_prev}\t"\
-                                f"{curr_block.chrom}\t{curr_block.genome}\t{start_curr}\t{end_curr}\t{relative_ori}"
+                                f"{curr_block.chrom}\t{curr_block.genome}\t{start_curr}\t{end_curr}\t{relative_ori}\t"\
+                                f"{prev_line.strand}\t{curr_block.strand}"
                     lines_to_print.append(out_line)
 
                 if prev_line is not None and prev_line.id != curr_block.id:

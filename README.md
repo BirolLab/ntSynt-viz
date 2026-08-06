@@ -170,6 +170,9 @@ Example interactive ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosi
        width="100%">
 </video>
 
+## Using LLMs to summarize ribbon plots
+As of v1.1.0, ntSynt-viz generates a markdown file (`*LLM-info.md`) that can be input to your LLM of choice (along with the PNG image output) to produce a brief summary of the ribbon plot.
+Note that it is important to double check all conclusions/interpretations made by the LLM.
 
 ## Citing <a name=citing></a>
 

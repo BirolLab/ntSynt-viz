@@ -207,18 +207,15 @@ get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
 }
 
 # Get the information/data about synteny links for interactive layers with ggiraph
-get_link_info <- function(p, block_coords) {
+get_link_info <- function(p) {
     link_data <- pull_links(p) %>%
-    left_join(block_coords, by = "block_id") %>%
     mutate(
-      tooltip  = paste0("Block ID: ", block_id, "\n", coords),
       group_id = row_number()
     ) %>%
     rowwise() %>%
     mutate(poly = list(tibble(
       px      = c(x,    xend,  xmax,  xmin),
       py      = c(y,    y,     yend,  yend),
-      tooltip = tooltip,
       data_id = block_id,
       colour_block = colour_block
     ))) %>%
@@ -228,8 +225,25 @@ get_link_info <- function(p, block_coords) {
     return(link_data)
 }
 
-# Build chromosome -> block_id mapping (target genome seq_id only, as these appear in legend)
-build_js_map <- function(p, target_genome) {
+# Quote a value for use as a JavaScript string literal. This keeps the generated
+# maps valid when identifiers or tooltips contain quotes, slashes or newlines.
+quote_js_string <- function(value) {
+  value <- enc2utf8(as.character(value))
+  value <- gsub("\\", "\\\\", value, fixed = TRUE)
+  value <- gsub("\"", "\\\"", value, fixed = TRUE)
+  value <- gsub("\b", "\\b", value, fixed = TRUE)
+  value <- gsub("\f", "\\f", value, fixed = TRUE)
+  value <- gsub("\n", "\\n", value, fixed = TRUE)
+  value <- gsub("\r", "\\r", value, fixed = TRUE)
+  value <- gsub("\t", "\\t", value, fixed = TRUE)
+  value <- gsub("\u2028", "\\u2028", value, fixed = TRUE)
+  value <- gsub("\u2029", "\\u2029", value, fixed = TRUE)
+  paste0("\"", value, "\"")
+}
+
+# Build chromosome -> block_id and block_id -> tooltip mappings. Chromosomes
+# from the target genome are the entries that appear in the legend.
+build_js_maps <- function(p, target_genome, block_coords) {
   chrom_block_map <- pull_links(p) %>%
     filter(bin_id == target_genome) %>%
     select(block_id, seq_id) %>%
@@ -241,15 +255,26 @@ build_js_map <- function(p, target_genome) {
   js_map_entries <- chrom_block_map %>%
     rowwise() %>%
     mutate(entry = paste0(
-      '"', chrom, '": [',
-      paste0('"', unlist(block_ids), '"', collapse = ","),
+      quote_js_string(chrom), ': [',
+      paste(quote_js_string(unlist(block_ids)), collapse = ","),
       ']'
     )) %>%
     pull(entry) %>%
     paste(collapse = ",\n")
 
-  js_map <- paste0("const chromBlockMap = {\n", js_map_entries, "\n};")
-  return(js_map)
+  tooltip_map_entries <- block_coords %>%
+    transmute(entry = paste0(
+      quote_js_string(block_id), ": ",
+      quote_js_string(paste0("Block ID: ", block_id, "\n", coords))
+    )) %>%
+    pull(entry) %>%
+    paste(collapse = ",\n")
+
+  js_maps <- paste0(
+    "const chromBlockMap = {\n", js_map_entries, "\n};\n",
+    "const blockTooltipMap = {\n", tooltip_map_entries, "\n};"
+  )
+  return(js_maps)
 }
 
 # Make the ribbon plot - these layers can be fully customized as needed
@@ -332,9 +357,9 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   max_chrom_len  <- max(nchar(all_elements$chrom), na.rm = TRUE)
 
   block_coords <- get_block_coord_info(p, max_genome_len, max_chrom_len)
-  link_data <- get_link_info(p, block_coords)
+  link_data <- get_link_info(p)
 
-  # Add ribbon hover interactivity
+  # Add ribbon hover interactivity over the visible geom_link layer.
   plot <- plot +
     geom_polygon_interactive(
       data = link_data,
@@ -342,7 +367,6 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
         x       = px,
         y       = py,
         group   = group_id,
-        tooltip = tooltip,
         data_id = data_id,
         fill = colour_block
       ),
@@ -378,7 +402,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     )
 
   # Build map of chromosome -> block_id for interactive legend
-  js_map <- build_js_map(p, target_genome)
+  js_map <- build_js_maps(p, target_genome, block_coords)
 
   return(list(plot = plot, js_map = js_map))
 }
@@ -439,6 +463,7 @@ if (is.null(args$tree)) {
     common.legend = TRUE, align = "hv",
     widths = c(1, 10), legend = "bottom"
   )
+
 }
 
 any_rc <- length((sequences %>% filter(relative_orientation != ""))$relative_orientation) > 0
@@ -486,8 +511,6 @@ interactive_plot <- girafe(
   width_svg  = args$width  / 2.54, # Converting to inches
   height_svg = args$height / 2.54,
   options = list(
-    opts_hover(css = "stroke:darkgrey; stroke-width:1; fill-opacity:0.1; transition: all 0.1s ease;"),
-    opts_hover_inv(css = "opacity:0.2;"),
     opts_zoom(max = 10),
     opts_toolbar(pngname = args$prefix),
     opts_sizing(rescale = TRUE, width = 1),

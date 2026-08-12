@@ -12,51 +12,50 @@ document.addEventListener("DOMContentLoaded", function() {
     const bgRect = svg.querySelector("rect.ggiraph-svg-bg");
     if (bgRect) bgRect.style.pointerEvents = "none";
 
-    // --- disable pointer events on all ribbon polygons ---
-    // Chromosomes (segments) will be the sole hit targets for ggiraph.
-    // We handle ribbon tooltips manually via JS geometry check below.
-    svg.querySelectorAll("polygon[data-id]").forEach(function(poly) {
-      poly.style.pointerEvents = "none";
-    });
-
-    svg.querySelectorAll("*").forEach(function(el) {
-      el.style.pointerEvents = "auto";
-    });
-    // Re-disable polygons after the above (order matters)
-    svg.querySelectorAll("polygon[data-id]").forEach(function(poly) {
-      poly.style.pointerEvents = "none";
-    });
-
-    // ---------------------------------------------------------------
-    // PERF: cache static geometry once instead of re-querying/
-    // re-measuring the DOM on every mousemove. None of these elements
-    // move after render (aside from resize/scroll), so we build the
-    // lookup tables up front and reuse them.
-    // ---------------------------------------------------------------
+    // Let the browser's native SVG hit testing identify ribbons and
+    // chromosomes. The chromosome segments are later in the SVG, so they
+    // retain priority wherever they overlap a ribbon.
     const ribbonPolys = Array.from(svg.querySelectorAll("polygon[data-id]"));
-    // Local-space bbox per polygon, used as a cheap pre-filter before
-    // the expensive isPointInFill hit test.
+    const ribbonsById = new Map();
     ribbonPolys.forEach(function(poly) {
-      try { poly._bbox = poly.getBBox(); } catch (err) { poly._bbox = null; }
+      const blockId = poly.getAttribute("data-id");
+      poly.classList.add("ntsynt-ribbon-hit");
+      if (!ribbonsById.has(blockId)) ribbonsById.set(blockId, []);
+      ribbonsById.get(blockId).push(poly);
     });
 
-    let chromSegs = []; // { el, rect } - rect refreshed on resize/scroll
-    function refreshChromSegRects() {
-      const segEls = svg.querySelectorAll("line[data-id], [data-id].chromosome");
-      chromSegs = Array.from(segEls).map(function(el) {
-        return { el: el, rect: el.getBoundingClientRect() };
+    let chromSegs = Array.from(svg.querySelectorAll("line[data-id], [data-id].chromosome"));
+    chromSegs.forEach(function(seg) {
+      seg.classList.add("ntsynt-chromosome-hit");
+    });
+
+    // Retain the original five-pixel chromosome priority area. There are
+    // comparatively few chromosomes, so this small scan is inexpensive.
+    function refreshChromosomeRects() {
+      chromSegs = chromSegs.map(function(item) {
+        const element = item.element || item;
+        return { element: element, rect: element.getBoundingClientRect() };
       });
     }
-    refreshChromSegRects();
+    refreshChromosomeRects();
 
-    // Debounced re-measure on resize/scroll, since layout can shift then.
     let resizeTimer = null;
-    function scheduleRectRefresh() {
+    function scheduleChromosomeRectRefresh() {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(refreshChromSegRects, 150);
+      resizeTimer = setTimeout(refreshChromosomeRects, 150);
     }
-    window.addEventListener("resize", scheduleRectRefresh, true);
-    window.addEventListener("scroll", scheduleRectRefresh, true);
+    window.addEventListener("resize", scheduleChromosomeRectRefresh, true);
+    window.addEventListener("scroll", scheduleChromosomeRectRefresh, true);
+
+    const interactionStyles = document.createElement("style");
+    interactionStyles.textContent = [
+      ".ntsynt-ribbon-hit { pointer-events: fill !important; cursor:default !important; }",
+      ".ntsynt-chromosome-hit { pointer-events: stroke !important; cursor:default !important; }",
+      ".ntsynt-ribbon-hit.ntsynt-legend-selected { opacity:0.9 !important; fill-opacity:0.9 !important; }",
+      ".ntsynt-ribbon-hit.ntsynt-legend-inactive { opacity:0.6 !important; fill:white !important; fill-opacity:0.6 !important; }",
+      ".ntsynt-ribbon-hit.ntsynt-hovered { stroke:black !important; stroke-width:1 !important; opacity:1 !important; fill:darkgrey !important; fill-opacity:0.3 !important; }"
+    ].join("\n");
+    document.head.appendChild(interactionStyles);
 
     // --- Manual ribbon tooltip ---
     // We need our own tooltip div since we bypassed ggiraph for ribbons
@@ -74,7 +73,8 @@ document.addEventListener("DOMContentLoaded", function() {
       "font-size:16px",
       "pointer-events:none",
       "z-index:9999",
-      "max-width:900px"
+      "max-width:900px",
+      "white-space:pre-wrap"
     ].join(";");
 
     const contentDiv = document.createElement("div");
@@ -106,72 +106,87 @@ document.addEventListener("DOMContentLoaded", function() {
       unpinTooltip();
     });
 
-    // Check if cursor is near any chromosome segment (invisible hit area)
-    // Returns the matched <line> element, or null.
-    // PERF: uses the cached chromSegs array (no querySelectorAll or
-    // getBoundingClientRect on every call) instead of two separate
-    // near-duplicate functions.
-    const CHROM_PRIORITY_PX = 5;
+    function closestSvgElement(event, selector) {
+      if (!event.target || !event.target.closest) return null;
+      const element = event.target.closest(selector);
+      return element && svg.contains(element) ? element : null;
+    }
 
-    function getChromosomeUnderCursor(e) {
+    function getChromosomeUnderCursor(event) {
+      const nativeTarget = closestSvgElement(event, "line[data-id], [data-id].chromosome");
+      if (nativeTarget) return nativeTarget;
+
+      const padding = 5;
       for (let i = 0; i < chromSegs.length; i++) {
-        const b = chromSegs[i].rect;
+        const item = chromSegs[i];
+        const rect = item.rect;
         if (
-          e.clientX >= b.left  - CHROM_PRIORITY_PX &&
-          e.clientX <= b.right + CHROM_PRIORITY_PX &&
-          e.clientY >= b.top   - CHROM_PRIORITY_PX &&
-          e.clientY <= b.bottom + CHROM_PRIORITY_PX
+          event.clientX >= rect.left - padding && event.clientX <= rect.right + padding &&
+          event.clientY >= rect.top  - padding && event.clientY <= rect.bottom + padding
         ) {
-          return chromSegs[i].el;
+          return item.element;
         }
       }
       return null;
     }
 
-    function isNearChromosome(e) {
-      return getChromosomeUnderCursor(e) !== null;
+    function getRibbonUnderCursor(event) {
+      return closestSvgElement(event, "polygon.ntsynt-ribbon-hit[data-id]");
     }
 
-    // Find which ribbon polygon (if any) the cursor is geometrically inside.
-    // PERF: the screen->SVG matrix is identical for every polygon in this
-    // plot (they share the SVG's coordinate space), so it's computed once
-    // per call instead of once per polygon. A cheap local-space bbox check
-    // skips isPointInFill for the vast majority of polygons.
-    function getRibbonUnderCursor(e) {
-      const ctm = svg.getScreenCTM();
-      if (ctm) {
-        const inv = ctm.inverse();
-        const svgPt = svg.createSVGPoint();
-        svgPt.x = e.clientX;
-        svgPt.y = e.clientY;
-        const localPt = svgPt.matrixTransform(inv);
+    let hoveredRibbonId = null;
 
-        for (let i = 0; i < ribbonPolys.length; i++) {
-          const poly = ribbonPolys[i];
-          const b = poly._bbox;
-          if (b) {
-            if (
-              localPt.x < b.x || localPt.x > b.x + b.width ||
-              localPt.y < b.y || localPt.y > b.y + b.height
-            ) {
-              continue; // cheap rejection, skip the expensive hit test
-            }
-          }
-          try {
-            if (poly.isPointInFill && poly.isPointInFill(localPt)) return poly;
-          } catch (err) { /* skip */ }
-        }
+    // Hover changes normally affect only the previous and current block,
+    // rather than every ribbon in the plot.
+    function setHoveredRibbon(blockId) {
+      const nextId = blockId === null || blockId === undefined ? null : String(blockId);
+      if (nextId === hoveredRibbonId) return false;
+
+      if (hoveredRibbonId !== null) {
+        (ribbonsById.get(hoveredRibbonId) || []).forEach(function(poly) {
+          poly.classList.remove("ntsynt-hovered");
+        });
       }
-      // Fallback: elementsFromPoint but skip if near a chromosome
-      if (!isNearChromosome(e)) {
-        const els = document.elementsFromPoint(e.clientX, e.clientY);
-        for (let el of els) {
-          if (el.tagName === "polygon" && el.getAttribute("data-id")) {
-            return el;
-          }
-        }
+      if (nextId !== null) {
+        (ribbonsById.get(nextId) || []).forEach(function(poly) {
+          poly.classList.add("ntsynt-hovered");
+        });
       }
-      return null;
+      hoveredRibbonId = nextId;
+      return true;
+    }
+
+    function positionRibbonTooltip(event) {
+      ribbonTip.style.left = (event.clientX + 14) + "px";
+      ribbonTip.style.top  = (event.clientY + 14) + "px";
+      const rect = ribbonTip.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        ribbonTip.style.left = (event.clientX - rect.width - 14) + "px";
+      }
+      if (rect.bottom > window.innerHeight) {
+        ribbonTip.style.top = (event.clientY - rect.height - 14) + "px";
+      }
+    }
+
+    function hideRibbonTooltip() {
+      ribbonTip.style.display = "none";
+    }
+
+    function getElementTooltip(element) {
+      const id = element.getAttribute("data-id");
+      if (element.matches("polygon.ntsynt-ribbon-hit")) {
+        return blockTooltipMap[id] || null;
+      }
+
+      const titleElement = element.querySelector ? element.querySelector("title") : null;
+      const rawText = (titleElement ? titleElement.innerHTML : null)
+        || element.getAttribute("title")
+        || element.getAttribute("data-original-title");
+      if (!rawText) return null;
+
+      const decoder = document.createElement("textarea");
+      decoder.innerHTML = rawText;
+      return decoder.value.replace(/<br\s*\/?\s*>/gi, "\n");
     }
 
     // ---------------------------------------------------------------
@@ -186,52 +201,28 @@ document.addEventListener("DOMContentLoaded", function() {
     function onMouseMove(e) {
       if (pinnedRibbonId) return; // frozen while pinned
 
-      if (isNearChromosome(e)) {
-        ribbonTip.style.display = "none";
-        applyLegendState();
+      if (getChromosomeUnderCursor(e)) {
+        hideRibbonTooltip();
+        setHoveredRibbon(null);
         return;
       }
 
       const poly = getRibbonUnderCursor(e);
       if (poly) {
         const hoveredId = poly.getAttribute("data-id");
-
-        // Highlight matching ribbons, dim others
-        ribbonPolys.forEach(function(p) {
-          if (p.getAttribute("data-id") === hoveredId) {
-            p.style.stroke = "black";
-            p.style.strokeWidth = "1";
-            p.style.opacity = "1";
-            p.style.fill = "darkgrey";
-            p.style.fillOpacity = "0.3";
-          }
-        });
-        applyLegendState(hoveredId);
-
-        // Show tooltip
-        const titleEl = poly.querySelector("title");
-        const tooltipText = (titleEl ? titleEl.innerHTML : null)
-          || poly.getAttribute("title")
-          || poly.getAttribute("data-original-title");
+        const hoverChanged = setHoveredRibbon(hoveredId);
+        const tooltipText = blockTooltipMap[hoveredId];
         if (tooltipText) {
-          const tooltipHtml = tooltipText
-            .replaceAll("&lt;br/&gt;", "<br/>")
-            .replaceAll("&lt;br&gt;", "<br>");
-
-          contentDiv.innerHTML = tooltipHtml;
+          if (hoverChanged) contentDiv.textContent = tooltipText;
+          controlsDiv.style.display = "none";
           ribbonTip.style.display = "block";
-          ribbonTip.style.left = (e.clientX + 14) + "px";
-          ribbonTip.style.top  = (e.clientY + 14) + "px";
-          const r = ribbonTip.getBoundingClientRect();
-          if (r.right  > window.innerWidth)  ribbonTip.style.left = (e.clientX - r.width  - 14) + "px";
-          if (r.bottom > window.innerHeight) ribbonTip.style.top  = (e.clientY - r.height - 14) + "px";
+          positionRibbonTooltip(e);
         } else {
-          ribbonTip.style.display = "none";
+          hideRibbonTooltip();
         }
       } else {
-        // Not over any ribbon — clear everything
-        ribbonTip.style.display = "none";
-        applyLegendState();
+        hideRibbonTooltip();
+        setHoveredRibbon(null);
       }
     }
 
@@ -250,93 +241,69 @@ document.addEventListener("DOMContentLoaded", function() {
 
     container.addEventListener("mouseleave", function() {
       if (pinnedRibbonId) return;
-      ribbonTip.style.display = "none";
-      applyLegendState();
+      hideRibbonTooltip();
+      setHoveredRibbon(null);
     }, true);
 
     // ---- Legend click / chromosome filtering ----
     const legendChromMap = {};
+    const legendEntries = [];
     svg.querySelectorAll("text").forEach(function(t) {
       const chrom = t.textContent.trim();
-      if (chromBlockMap[chrom]) legendChromMap[chrom] = chromBlockMap[chrom];
+      if (chromBlockMap[chrom]) {
+        legendChromMap[chrom] = chromBlockMap[chrom];
+        t.classList.add("ntsynt-legend-label");
+        t.dataset.chrom = chrom;
+        t.style.setProperty("pointer-events", "all", "important");
+        t.style.cursor = "pointer";
+        legendEntries.push({ chrom: chrom, element: t });
+      }
     });
 
     const activeChromosomes = new Set();
 
-    // PERF: iterates the cached ribbonPolys array instead of re-querying
-    // the DOM for polygons on every call.
-    function applyLegendState(omit_poly_id = null) {
+    // Legend changes are infrequent, so updating the transparent interactive
+    // ribbon layer here does not affect ordinary hover performance.
+    function applyLegendState() {
         const activeBlockIds = new Set();
 
         activeChromosomes.forEach(function(c) {
             legendChromMap[c].forEach(function(bid) {
-            activeBlockIds.add(bid);
+              activeBlockIds.add(String(bid));
             });
         });
 
         ribbonPolys.forEach(function(poly) {
-            const bid = poly.getAttribute("data-id");
+          const bid = poly.getAttribute("data-id");
 
-            if (omit_poly_id && omit_poly_id == bid) {
-                return;
-            }
-
-            if (activeChromosomes.size === 0) {
-            poly.style.opacity = "";
-            poly.style.fill = "";
-            poly.style.fillOpacity = "";
-            poly.style.stroke = "";
-            poly.style.strokeWidth = "";
-            } else if (activeBlockIds.has(bid)) {
-            poly.style.opacity = "0.9";
-            poly.style.fill = "";
-            poly.style.fillOpacity = "0.9";
-            poly.style.stroke = "";
-            poly.style.strokeWidth = "";
-            } else {
-            poly.style.opacity = "0.6";
-            poly.style.fill = "white";
-            poly.style.fillOpacity = "0.6";
-            poly.style.stroke = "";
-            poly.style.strokeWidth = "";            }
+          if (activeChromosomes.size === 0) {
+            poly.classList.remove("ntsynt-legend-selected", "ntsynt-legend-inactive");
+          } else if (activeBlockIds.has(bid)) {
+            poly.classList.add("ntsynt-legend-selected");
+            poly.classList.remove("ntsynt-legend-inactive");
+          } else {
+            poly.classList.add("ntsynt-legend-inactive");
+            poly.classList.remove("ntsynt-legend-selected");
+          }
         });
     }
 
     function pinTooltip(el, e) {
-      const titleEl = el.querySelector ? el.querySelector("title") : null;
-      const tooltipText = (titleEl ? titleEl.innerHTML : null)
-        || el.getAttribute("title")
-        || el.getAttribute("data-original-title");
+      const tooltipText = getElementTooltip(el);
       if (!tooltipText) return;
 
       pinnedRibbonId = el.getAttribute("data-id");
-
-      const tooltipHtml = tooltipText
-        .replaceAll("&lt;br/&gt;", "<br/>")
-        .replaceAll("&lt;br&gt;", "<br>");
-
-      contentDiv.innerHTML = tooltipHtml;
+      contentDiv.textContent = tooltipText;
       controlsDiv.style.display = "block";
       ribbonTip.style.pointerEvents = "auto";
       ribbonTip.style.userSelect = "text";
       ribbonTip.style.display = "block";
-      ribbonTip.style.left = (e.clientX + 14) + "px";
-      ribbonTip.style.top  = (e.clientY + 14) + "px";
-      const r = ribbonTip.getBoundingClientRect();
-      if (r.right  > window.innerWidth)  ribbonTip.style.left = (e.clientX - r.width  - 14) + "px";
-      if (r.bottom > window.innerHeight) ribbonTip.style.top  = (e.clientY - r.height - 14) + "px";
+      positionRibbonTooltip(e);
 
       if (el.tagName && el.tagName.toLowerCase() === "polygon") {
-        ribbonPolys.forEach(function(p) {
-          if (p.getAttribute("data-id") === pinnedRibbonId) {
-            p.style.stroke = "black";
-            p.style.strokeWidth = "1";
-            p.style.opacity = "1";
-            p.style.fill = "darkgrey";
-            p.style.fillOpacity = "0.3";
-          }
-        });
-        applyLegendState(pinnedRibbonId);
+        setHoveredRibbon(pinnedRibbonId);
+      } else {
+        setHoveredRibbon(null);
       }
     }
 
@@ -345,7 +312,7 @@ document.addEventListener("DOMContentLoaded", function() {
       ribbonTip.style.display = "none";
       ribbonTip.style.pointerEvents = "none";
       controlsDiv.style.display = "none";
-      applyLegendState();
+      setHoveredRibbon(null);
     }
 
     function inBBox(el, e, padding = 5) {
@@ -355,6 +322,18 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function findLegendChrom(e) {
+      const label = closestSvgElement(e, "text.ntsynt-legend-label");
+      if (label) return label.dataset.chrom;
+
+      // Do not rely solely on SVG pointer-event rules: ggiraph normally
+      // disables pointer events on non-interactive text. This inexpensive
+      // fallback only scans the small number of chromosome legend labels.
+      for (let i = 0; i < legendEntries.length; i++) {
+        const entry = legendEntries[i];
+        if (inBBox(entry.element, e)) return entry.chrom;
+      }
+
+      // Preserve support for clicks on a legend key rectangle.
       const els = document.elementsFromPoint(e.clientX, e.clientY);
       for (let i = 0; i < els.length; i++) {
         const el = els[i];
@@ -385,9 +364,9 @@ document.addEventListener("DOMContentLoaded", function() {
         activeChromosomes.add(chrom);
       }
 
-      svg.querySelectorAll("text").forEach(function(t) {
-        const c = t.textContent.trim();
-        if (!legendChromMap[c]) return;
+      legendEntries.forEach(function(entry) {
+        const t = entry.element;
+        const c = entry.chrom;
         if (activeChromosomes.has(c)) {
           t.style.fontWeight = "bold";
           t.style.textDecoration = "underline";

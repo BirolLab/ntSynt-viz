@@ -64,6 +64,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const ribbonTip = document.createElement("div");
     ribbonTip.style.cssText = [
       "position:fixed",
+      "left:0",
+      "top:0",
       "display:none",
       "background:rgba(255,255,255,0.9)",
       "padding:10px",
@@ -157,15 +159,17 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function positionRibbonTooltip(event) {
-      ribbonTip.style.left = (event.clientX + 14) + "px";
-      ribbonTip.style.top  = (event.clientY + 14) + "px";
-      const rect = ribbonTip.getBoundingClientRect();
-      if (rect.right > window.innerWidth) {
-        ribbonTip.style.left = (event.clientX - rect.width - 14) + "px";
-      }
-      if (rect.bottom > window.innerHeight) {
-        ribbonTip.style.top = (event.clientY - rect.height - 14) + "px";
-      }
+      // Keep the tooltip in the viewport half opposite the cursor. Percentage
+      // translations are relative to the tooltip itself, so this requires no
+      // geometry read (and therefore no forced layout) while the mouse moves.
+      const x = event.clientX <= window.innerWidth / 2
+        ? `calc(${event.clientX}px + 14px)`
+        : `calc(${event.clientX}px - 100% - 14px)`;
+      const y = event.clientY <= window.innerHeight / 2
+        ? `calc(${event.clientY}px + 14px)`
+        : `calc(${event.clientY}px - 100% - 14px)`;
+
+      ribbonTip.style.transform = `translate3d(${x}, ${y}, 0)`;
     }
 
     function hideRibbonTooltip() {

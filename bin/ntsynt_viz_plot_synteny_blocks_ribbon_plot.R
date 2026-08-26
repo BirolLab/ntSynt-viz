@@ -118,7 +118,13 @@ colours_df <- read.csv(args$colour_indices, sep = "\t", header = TRUE)
 
 # Read in haplotypes, or set to FALSE
 if (! is.null(args$haplotypes)) {
-  haplotypes <- read.csv(args$haplotypes, sep = "\t", header = TRUE) %>% mutate(bin_id = str_replace_all(bin_id, "_", " "))
+  haplotype_data <- read.csv(args$haplotypes, sep = "\t", header = TRUE) %>%
+    mutate(bin_id = str_replace_all(bin_id, "_", " "),
+           nudge_next = lead(nudge, default = 0))
+  haplotypes <- list(
+    nudge = setNames(haplotype_data$nudge, haplotype_data$bin_id),
+    nudge_next = setNames(haplotype_data$nudge_next, haplotype_data$bin_id)
+  )
 } else {
   haplotypes <- FALSE
 }
@@ -137,22 +143,12 @@ if (! is.null(args$centromeres)) {
 get_y_coord <- function(haplotypes, bin_id, y, end=FALSE) {
   if (typeof(haplotypes) == "logical") {
     return(y)
-  } else {
-    coordinates <- data.frame(bin_id = bin_id, y = y)
-    if (end == TRUE) {
-      haplotypes <- haplotypes %>% 
-        mutate(bin_id_next = lead(bin_id, 1), nudge_next = lead(nudge, 1)) %>%
-        mutate(nudge_next = replace_na(nudge_next, 0))
-      joined <- inner_join(coordinates, haplotypes, by = "bin_id") %>%
-        mutate(y = y + nudge_next)
-    } else {
-      joined <- inner_join(coordinates, haplotypes, by = "bin_id") %>%
-              mutate(y = y + nudge)
-    }
-
-
-    return(joined$y)
   }
+
+  offsets <- if (end) haplotypes$nudge_next else haplotypes$nudge
+  offsets <- unname(offsets[as.character(bin_id)])
+  offsets[is.na(offsets)] <- 0
+  y + offsets
 }
 
 format_genome_size <- function(bp) {
@@ -165,9 +161,8 @@ format_genome_size <- function(bp) {
 }
 
 # Return dataframe with bin annotations
-get_bin_annotations <- function(plot){
-  bin_stats <- plot %>%
-  pull_seqs() %>%                          
+get_bin_annotations <- function(seq_data){
+  bin_stats <- seq_data %>%
   group_by(bin_id) %>%
   summarise(
     n_chr       = n(),
@@ -182,8 +177,8 @@ get_bin_annotations <- function(plot){
 }
 
 # Prepare a summary string for each synteny block
-get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
-  block_coords <- pull_links(p) %>%
+get_block_coord_info <- function(link_data, max_genome_len, max_chrom_len) {
+  block_coords <- link_data %>%
     group_by(block_id) %>%
     summarise(
       coords = {
@@ -207,22 +202,18 @@ get_block_coord_info <- function(p, max_genome_len, max_chrom_len) {
 }
 
 # Get the information/data about synteny links for interactive layers with ggiraph
-get_link_info <- function(p) {
-    link_data <- pull_links(p) %>%
-    mutate(
-      group_id = row_number()
-    ) %>%
-    rowwise() %>%
-    mutate(poly = list(tibble(
-      px      = c(x,    xend,  xmax,  xmin),
-      py      = c(y,    y,     yend,  yend),
-      data_id = block_id,
-      colour_block = colour_block
-    ))) %>%
-    ungroup() %>%
-    select(group_id, poly) %>%
-    unnest(poly)
-    return(link_data)
+get_link_info <- function(link_data) {
+  n_links <- nrow(link_data)
+
+  tibble(
+    group_id = rep(seq_len(n_links), each = 4),
+    px = as.vector(rbind(link_data$x, link_data$xend,
+                         link_data$xmax, link_data$xmin)),
+    py = as.vector(rbind(link_data$y, link_data$y,
+                         link_data$yend, link_data$yend)),
+    data_id = rep(link_data$block_id, each = 4),
+    colour_block = rep(link_data$colour_block, each = 4)
+  )
 }
 
 # Quote a value for use as a JavaScript string literal. This keeps the generated
@@ -243,8 +234,8 @@ quote_js_string <- function(value) {
 
 # Build chromosome -> block_id and block_id -> tooltip mappings. Chromosomes
 # from the target genome are the entries that appear in the legend.
-build_js_maps <- function(p, target_genome, block_coords) {
-  chrom_block_map <- pull_links(p) %>%
+build_js_maps <- function(link_data, target_genome, block_coords) {
+  chrom_block_map <- link_data %>%
     filter(bin_id == target_genome) %>%
     select(block_id, seq_id) %>%
     distinct() %>%
@@ -289,6 +280,11 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   } else {
     p <-  gggenomes(seqs = sequences, links = links, feats = list(painting))
   }
+
+  # Materialize the computed gggenomes coordinates once. These tables are reused
+  # for annotations, interactive layers, tooltips, and JavaScript mappings.
+  links_plot <- pull_links(p)
+  seqs_plot <- pull_seqs(p)
 
   plot <- p + theme_gggenomes_clean(base_size = 15) +
   geom_link(aes(fill = colour_block,
@@ -338,7 +334,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   }
 
   if (args$annotate_genome_info) {
-    bin_stats <- get_bin_annotations(plot)
+    bin_stats <- get_bin_annotations(seqs_plot)
     
     plot <- plot + geom_text(data = bin_stats, aes(x = x_right, y = y, label = label, hjust = 0),
                              size = 4) +
@@ -348,16 +344,16 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   # Prepare interactive components
   # Combine all unique genome/chrom combinations across the dataset
   all_elements <- bind_rows(
-    pull_links(p) %>% select(genome = bin_id,  chrom = seq_id,  start, end),
-    pull_links(p) %>% select(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
+    links_plot %>% select(genome = bin_id,  chrom = seq_id,  start, end),
+    links_plot %>% select(genome = bin_id2, chrom = seq_id2, start = start2, end = end2)
   ) %>% distinct()
 
   # Find the maximum string length of the genome IDs to know how much to pad for hover boxes
   max_genome_len <- max(nchar(all_elements$genome), na.rm = TRUE)
   max_chrom_len  <- max(nchar(all_elements$chrom), na.rm = TRUE)
 
-  block_coords <- get_block_coord_info(p, max_genome_len, max_chrom_len)
-  link_data <- get_link_info(p)
+  block_coords <- get_block_coord_info(links_plot, max_genome_len, max_chrom_len)
+  link_data <- get_link_info(links_plot)
 
   # Add ribbon hover interactivity over the visible geom_link layer.
   plot <- plot +
@@ -375,7 +371,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     )
 
   # Prepare information about chromosomes for interactive layers
-  seq_data <- pull_seqs(p) %>%
+  seq_data <- seqs_plot %>%
     mutate(
       length_fmt = format(length, big.mark = ",", scientific = FALSE),
       tooltip = paste0(
@@ -402,7 +398,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     )
 
   # Build map of chromosome -> block_id for interactive legend
-  js_map <- build_js_maps(p, target_genome, block_coords)
+  js_map <- build_js_maps(links_plot, target_genome, block_coords)
 
   return(list(plot = plot, js_map = js_map))
 }

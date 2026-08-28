@@ -29,6 +29,10 @@ min_seq_length = config.get("min_seq_length", 500000)
 res = config.get("dpi", 300)
 orders = config.get("order", [])
 annotate_genome_info = config.get("annotate_genome_info", False)
+interactive_renderer = config.get("interactive_renderer", "svg")
+
+if interactive_renderer not in {"svg", "webgl"}:
+    raise ValueError("interactive_renderer must be one of: svg, webgl")
 
 optimize_ordering = config.get("optimize_ordering", False)
 
@@ -290,10 +294,11 @@ rule ribbon_plot:
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
         annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
+        interactive_renderer = f"--interactive-renderer {interactive_renderer}",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info} {params.interactive_renderer}"
 
 rule ribbon_plot_tree:
     input: 
@@ -319,10 +324,11 @@ rule ribbon_plot_tree:
         haplotypes = f"--haplotypes {rules.nudges.output.nudges}" if haplotypes else "",
         resolution = f"--dpi {res}" if format_img == "png" else "",
         annotate_genome_info = "--annotate-genome-info" if annotate_genome_info else "",
+        interactive_renderer = f"--interactive-renderer {interactive_renderer}",
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info} {params.interactive_renderer}"
 
 rule llm_instructions:
     input: 

@@ -51,6 +51,11 @@ parser$add_argument("--format", help = "Output format for image (png, pdf or svg
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
+parser$add_argument("--interactive-renderer",
+                    help = paste("Renderer for ribbons in the interactive HTML.",
+                                 "'svg' preserves the existing ggiraph output;",
+                                 "'webgl' keeps SVG ribbons visible and uses GPU hit-testing (default svg)."),
+                    default = "svg", choices = c("svg", "webgl"))
 parser$add_argument("--annotate-genome-info", help = "Add annotations about number of sequences and genome size to the right of each bin",
                     action = "store_true")
 
@@ -232,6 +237,32 @@ quote_js_string <- function(value) {
   paste0("\"", value, "\"")
 }
 
+serialize_js_numeric_array <- function(values) {
+  encoded <- ifelse(
+    is.finite(values),
+    sprintf("%.17g", as.numeric(values)),
+    "null"
+  )
+  paste0("[", paste(encoded, collapse = ","), "]")
+}
+
+serialize_webgl_data <- function(data) {
+  links <- data$links
+  paste0(
+    "{\"x_range\":", serialize_js_numeric_array(data$x_range),
+    ",\"y_range\":", serialize_js_numeric_array(data$y_range),
+    ",\"links\":{",
+    "\"x1\":", serialize_js_numeric_array(links$x1), ",",
+    "\"x2\":", serialize_js_numeric_array(links$x2), ",",
+    "\"x3\":", serialize_js_numeric_array(links$x3), ",",
+    "\"x4\":", serialize_js_numeric_array(links$x4), ",",
+    "\"y1\":", serialize_js_numeric_array(links$y1), ",",
+    "\"y2\":", serialize_js_numeric_array(links$y2), ",",
+    "\"block_id\":[", paste(quote_js_string(links$block_id), collapse = ","), "]",
+    "}}"
+  )
+}
+
 # Build chromosome -> block_id and block_id -> tooltip mappings. Chromosomes
 # from the target genome are the entries that appear in the legend.
 build_js_maps <- function(link_data, target_genome, block_coords) {
@@ -262,14 +293,16 @@ build_js_maps <- function(link_data, target_genome, block_coords) {
     paste(collapse = ",\n")
 
   js_maps <- paste0(
-    "const chromBlockMap = {\n", js_map_entries, "\n};\n",
-    "const blockTooltipMap = {\n", tooltip_map_entries, "\n};"
+    "const chromBlockMap = window.ntsyntChromBlockMap = {\n", js_map_entries, "\n};\n",
+    "const blockTooltipMap = window.ntsyntBlockTooltipMap = {\n", tooltip_map_entries, "\n};"
   )
   return(js_maps)
 }
 
 # Make the ribbon plot - these layers can be fully customized as needed
-make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FALSE, centromeres = FALSE, add_arrow = FALSE, haplotypes = FALSE) {
+make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FALSE,
+                      centromeres = FALSE, add_arrow = FALSE, haplotypes = FALSE,
+                      include_ribbon_hit_layer = TRUE) {
   target_genome <- (sequences %>% head(1) %>% select(bin_id))[[1]]
   sequences_filt <- unique((sequences %>% filter(bin_id == target_genome))$seq_id)
   num_colours <- unique(colours_df$num_seqs)
@@ -286,11 +319,15 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   links_plot <- pull_links(p)
   seqs_plot <- pull_seqs(p)
 
-  plot <- p + theme_gggenomes_clean(base_size = 15) +
-  geom_link(aes(fill = colour_block,
-               y = get_y_coord(haplotypes, .data$bin_id, .data$y),
-              yend = get_y_coord(haplotypes, .data$bin_id, .data$yend, end = TRUE)),
-               offset = 0, alpha = 0.5, linewidth = 0.05) +
+  plot <- p + theme_gggenomes_clean(base_size = 15)
+
+  plot <- plot +
+    geom_link(aes(fill = colour_block,
+                  y = get_y_coord(haplotypes, .data$bin_id, .data$y),
+                  yend = get_y_coord(haplotypes, .data$bin_id, .data$yend, end = TRUE)),
+              offset = 0, alpha = 0.5, linewidth = 0.05)
+
+  plot <- plot +
   geom_seq(aes(y = get_y_coord(haplotypes, .data$bin_id, .data$y),
                yend = get_y_coord(haplotypes, bin_id, .data$y)),
                size = 2, colour = "darkgrey") + # draw contig/chromosome lines
@@ -309,6 +346,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
                       breaks = sequences_filt) +
   guides(fill = guide_legend(title = "", ncol = 10),
           colour = guide_legend(title = ""))
+
   if (add_arrow) {
     plot <- plot + geom_seq_label(aes(label = relative_orientation, 
                                       x = pmax(.data$x, .data$xend),
@@ -355,20 +393,23 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   block_coords <- get_block_coord_info(links_plot, max_genome_len, max_chrom_len)
   link_data <- get_link_info(links_plot)
 
-  # Add ribbon hover interactivity over the visible geom_link layer.
-  plot <- plot +
-    geom_polygon_interactive(
-      data = link_data,
-      aes(
-        x       = px,
-        y       = py,
-        group   = group_id,
-        data_id = data_id,
-        fill = colour_block
-      ),
-      alpha = 0,
-      hover_nearest = FALSE
-    )
+  # The SVG renderer uses transparent polygons for native hit testing. WebGL
+  # mode omits them and identifies ribbons through an off-screen picking buffer.
+  if (include_ribbon_hit_layer) {
+    plot <- plot +
+      geom_polygon_interactive(
+        data = link_data,
+        aes(
+          x       = px,
+          y       = py,
+          group   = group_id,
+          data_id = data_id,
+          fill = colour_block
+        ),
+        alpha = 0,
+        hover_nearest = FALSE
+      )
+  }
 
   # Prepare information about chromosomes for interactive layers
   seq_data <- seqs_plot %>%
@@ -400,7 +441,25 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   # Build map of chromosome -> block_id for interactive legend
   js_map <- build_js_maps(links_plot, target_genome, block_coords)
 
-  return(list(plot = plot, js_map = js_map))
+  panel_params <- ggplot_build(plot)$layout$panel_params[[1]]
+  webgl_links <- links_plot %>%
+    transmute(
+      x1 = x,
+      x2 = xend,
+      x3 = xmax,
+      x4 = xmin,
+      y1 = get_y_coord(haplotypes, bin_id, y),
+      y2 = get_y_coord(haplotypes, bin_id, yend, end = TRUE),
+      block_id = as.character(block_id)
+    )
+
+  webgl_data <- list(
+    x_range = unname(panel_params$x.range),
+    y_range = unname(panel_params$y.range),
+    links = webgl_links
+  )
+
+  return(list(plot = plot, js_map = js_map, webgl_data = webgl_data))
 }
 
 #############################
@@ -487,9 +546,40 @@ cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
 
 
 # Prepare interactive HTML
-script_dir <- dirname(normalizePath(commandArgs(trailingOnly = FALSE)[
-  grep("--file=", commandArgs(trailingOnly = FALSE))
-] |> sub("--file=", "", x = _)))
+interactive_plots <- plots
+webgl_data <- NULL
+
+if (args$interactive_renderer == "webgl") {
+  webgl_plot_tmp <- make_plot(
+    links_ntsynt, sequences, painting, colours_df,
+    add_scale_bar = TRUE,
+    centromeres = centromeres,
+    add_arrow = !args$no_arrow,
+    haplotypes = haplotypes,
+    include_ribbon_hit_layer = FALSE
+  )
+  interactive_plots <- webgl_plot_tmp$plot
+  js_map <- webgl_plot_tmp$js_map
+  webgl_data <- webgl_plot_tmp$webgl_data
+
+  if (!is.null(args$tree)) {
+    webgl_y_range <- ggplot_build(interactive_plots)$layout$panel_params[[1]]$y.range
+    interactive_plots <- ggarrange(
+      ntsynt_ggtree + scale_y_continuous(limits = webgl_y_range, expand = c(0, 0)),
+      (interactive_plots %>% pick_by_tree(ntsynt_ggtree)),
+      common.legend = TRUE, align = "hv",
+      widths = c(1, 10), legend = "bottom"
+    )
+  }
+
+  if (any_rc && !args$no_arrow) {
+    interactive_plots <- ggarrange(interactive_plots, note, ncol = 1, heights = c(10, 1))
+  }
+}
+
+command_args <- commandArgs(trailingOnly = FALSE)
+script_arg <- command_args[grep("--file=", command_args)]
+script_dir <- dirname(normalizePath(sub("--file=", "", script_arg)))
 js_template <- paste(
   readLines(paste(script_dir, "/ntsynt_viz_ribbon-interactive.js", sep=""), warn = FALSE),
   collapse = "\n"
@@ -502,8 +592,21 @@ js_inject <- gsub(
   fixed = TRUE
 )
 
+if (args$interactive_renderer == "webgl") {
+  webgl_template <- paste(
+    readLines(paste(script_dir, "/ntsynt_viz_ribbon-webgl.js", sep=""), warn = FALSE),
+    collapse = "\n"
+  )
+  webgl_json <- serialize_webgl_data(webgl_data)
+  js_inject <- paste(
+    js_inject,
+    gsub("__WEBGL_RIBBON_DATA__", webgl_json, webgl_template, fixed = TRUE),
+    sep = "\n"
+  )
+}
+
 interactive_plot <- girafe(
-  ggobj = plots,
+  ggobj = interactive_plots,
   width_svg  = args$width  / 2.54, # Converting to inches
   height_svg = args$height / 2.54,
   options = list(
@@ -511,6 +614,8 @@ interactive_plot <- girafe(
     opts_toolbar(pngname = args$prefix),
     opts_sizing(rescale = TRUE, width = 1),
     opts_tooltip(
+      delay_mouseover = 50,
+      delay_mouseout = 50,
       css = paste(
         "background: rgba(255,255,255,0.9);",
         "padding: 10px;",

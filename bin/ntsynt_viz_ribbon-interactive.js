@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (!container) { console.warn("container not found"); return; }
     const svg = container.querySelector("svg");
     if (!svg) { console.warn("svg not found"); return; }
+    const webglPickingMode = window.ntsyntWebGLPickingMode === true;
 
     const bgRect = svg.querySelector("rect.ggiraph-svg-bg");
     if (bgRect) bgRect.style.pointerEvents = "none";
@@ -15,18 +16,23 @@ document.addEventListener("DOMContentLoaded", function() {
     // Let the browser's native SVG hit testing identify ribbons and
     // chromosomes. The chromosome segments are later in the SVG, so they
     // retain priority wherever they overlap a ribbon.
-    const ribbonPolys = Array.from(svg.querySelectorAll("polygon[data-id]"));
+    const ribbonPolys = webglPickingMode
+      ? []
+      : Array.from(svg.querySelectorAll("polygon[data-id]"));
     const ribbonsById = new Map();
-    ribbonPolys.forEach(function(poly) {
+    ribbonPolys.forEach(function(poly, index) {
       const blockId = poly.getAttribute("data-id");
+      if (blockId === null || blockId === undefined || blockId === "undefined") return;
       // ggiraph uses data-id to activate its own hover handler. Ribbons are
       // handled entirely below, so move their IDs to a private attribute to
       // prevent both hover systems from processing the same pointer events.
-      poly.setAttribute("data-ntsynt-id", blockId);
-      poly.removeAttribute("data-id");
+      if (!webglPickingMode) {
+        poly.setAttribute("data-ntsynt-id", blockId);
+        poly.removeAttribute("data-id");
+        poly.classList.add("ntsynt-ribbon-hit");
+      }
       poly._ntsyntBlockId = blockId;
       poly._ntsyntTooltip = blockTooltipMap[blockId] || null;
-      poly.classList.add("ntsynt-ribbon-hit");
       if (!ribbonsById.has(blockId)) ribbonsById.set(blockId, []);
       ribbonsById.get(blockId).push(poly);
     });
@@ -119,9 +125,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const interactionStyles = document.createElement("style");
     interactionStyles.textContent = [
       ".ntsynt-ribbon-hit { pointer-events: fill !important; cursor:default !important; }",
-      ".ntsynt-chromosome-hit { pointer-events: stroke !important; cursor:default !important; stroke-width:10px !important; vector-effect:non-scaling-stroke; }",
+      ".ntsynt-chromosome-hit { pointer-events: stroke !important; cursor:default !important; stroke-width:14px !important; vector-effect:non-scaling-stroke; }",
       ".ntsynt-ribbon-hit.ntsynt-legend-selected { opacity:0.9 !important; fill-opacity:0.9 !important; }",
       ".ntsynt-ribbon-hit.ntsynt-legend-inactive { opacity:0.6 !important; fill:white !important; fill-opacity:0.6 !important; }",
+      ".ntsynt-ribbon-visual.ntsynt-legend-selected { opacity:0.9 !important; fill-opacity:0.9 !important; }",
+      ".ntsynt-ribbon-visual.ntsynt-legend-inactive { opacity:0.6 !important; fill:white !important; fill-opacity:0.6 !important; }",
       ".ntsynt-ggiraph-tooltip-suppressed { opacity:0 !important; }"
     ].join("\n");
     document.head.appendChild(interactionStyles);
@@ -135,6 +143,12 @@ document.addEventListener("DOMContentLoaded", function() {
     // tooltip below. Freeze its pointer handlers and tooltip while a custom
     // tooltip is pinned so the rest of the plot remains inert.
     const ggiraphTooltip = document.getElementsByClassName("tooltip_" + svg.id)[0] || null;
+    // In WebGL mode chromosome hover uses the same deterministic custom
+    // tooltip as ribbons. Keeping ggiraph's tooltip suppressed avoids its
+    // delayed transition and stale-position state showing through at (0, 0).
+    if (webglPickingMode && ggiraphTooltip) {
+      ggiraphTooltip.classList.add("ntsynt-ggiraph-tooltip-suppressed");
+    }
 
     function setPlotInteractionFrozen(frozen) {
       if (frozen === plotInteractionFrozen) return;
@@ -149,11 +163,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       } else {
         plotInteractionFrozen = false;
-        if (ggiraphTooltip) {
+        if (ggiraphTooltip && !webglPickingMode) {
           ggiraphTooltip.classList.remove("ntsynt-ggiraph-tooltip-suppressed");
           ggiraphTooltip.style.opacity = "0";
-          ggiraphTooltip.style.left = "0px";
-          ggiraphTooltip.style.top = "0px";
         }
       }
     }
@@ -236,6 +248,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     let hoveredRibbonId = null;
+    let tooltipRibbonId = null;
+    let hoveredChromosomeElement = null;
 
     // Update one overlay path rather than mutating the previous and current
     // block's individual ribbon polygons.
@@ -387,12 +401,32 @@ document.addEventListener("DOMContentLoaded", function() {
     function onMouseMove(e) {
       if (pinnedRibbonId) return; // frozen while pinned
 
-      if (getChromosomeUnderCursor(e)) {
+      const chromosome = getChromosomeUnderCursor(e);
+      if (chromosome) {
         cancelPendingRibbonHover();
-        hideRibbonTooltip();
         setHoveredRibbon(null);
+        const tooltipText = getElementTooltip(chromosome);
+        if (tooltipText) {
+          if (hoveredChromosomeElement !== chromosome) {
+            contentDiv.textContent = tooltipText;
+            hoveredChromosomeElement = chromosome;
+          }
+          showRibbonTooltip();
+          positionRibbonTooltip(e);
+        } else {
+          hoveredChromosomeElement = null;
+          hideRibbonTooltip();
+        }
         return;
       }
+
+      if (hoveredChromosomeElement !== null) {
+        hoveredChromosomeElement = null;
+        hideRibbonTooltip();
+      }
+
+      // In picking mode, the off-screen WebGL renderer owns ribbon hover.
+      if (webglPickingMode) return;
 
       const poly = getRibbonUnderCursor(e);
       if (poly) {
@@ -420,6 +454,7 @@ document.addEventListener("DOMContentLoaded", function() {
     container.addEventListener("mouseleave", function() {
       if (pinnedRibbonId) return;
       cancelPendingRibbonHover();
+      hoveredChromosomeElement = null;
       hideRibbonTooltip();
       setHoveredRibbon(null);
     }, true);
@@ -441,9 +476,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const activeChromosomes = new Set();
 
-    // Legend changes are infrequent, so updating the transparent interactive
-    // ribbon layer here does not affect ordinary hover performance.
+    // WebGL mode changes one ribbon-group opacity and a small set of chromosome
+    // overlay paths. SVG mode retains the original per-polygon fallback.
     function applyLegendState() {
+        if (webglPickingMode && window.ntsyntWebGLLegendController) {
+          window.ntsyntWebGLLegendController.apply(Array.from(activeChromosomes));
+          return;
+        }
         const activeBlockIds = new Set();
 
         activeChromosomes.forEach(function(c) {
@@ -474,6 +513,10 @@ document.addEventListener("DOMContentLoaded", function() {
       const tooltipText = getElementTooltip(el);
       if (!tooltipText) return;
 
+      if (webglPickingMode) {
+        window.dispatchEvent(new CustomEvent("ntsynt:ribbon-unpinned"));
+      }
+
       setPlotInteractionFrozen(true);
       pinnedRibbonId = el.matches("polygon.ntsynt-ribbon-hit")
         ? el._ntsyntBlockId
@@ -502,7 +545,52 @@ document.addEventListener("DOMContentLoaded", function() {
       ribbonTip.style.pointerEvents = "none";
       controlsDiv.style.display = "none";
       setHoveredRibbon(null);
+      window.dispatchEvent(new CustomEvent("ntsynt:ribbon-unpinned"));
     }
+
+    window.ntsyntRibbonTooltipController = {
+      showHover: function(blockId, tooltipText, position) {
+        if (pinnedRibbonId || !tooltipText) return;
+        const nextId = String(blockId);
+        if (nextId !== tooltipRibbonId) {
+          tooltipRibbonId = nextId;
+          contentDiv.textContent = tooltipText;
+        }
+        controlsDiv.style.display = "none";
+        showRibbonTooltip();
+        positionRibbonTooltip(position);
+      },
+      hideHover: function() {
+        if (pinnedRibbonId) return;
+        hideRibbonTooltip();
+        tooltipRibbonId = null;
+      },
+      setHighlight: setHoveredRibbon,
+      setHighlightPath: function(pathData) {
+        const nextPath = pathData || "";
+        if (ribbonHoverPath.getAttribute("d") !== nextPath) {
+          ribbonHoverPath.setAttribute("d", nextPath);
+        }
+      },
+      pin: function(blockId, tooltipText, position) {
+        if (!tooltipText) return;
+        cancelPendingRibbonHover();
+        setPlotInteractionFrozen(true);
+        pinnedRibbonId = String(blockId);
+        tooltipRibbonId = pinnedRibbonId;
+        contentDiv.textContent = tooltipText;
+        controlsDiv.style.display = "block";
+        ribbonTip.style.pointerEvents = "auto";
+        ribbonTip.style.userSelect = "text";
+        ribbonTip.style.display = "block";
+        ribbonTooltipVisible = true;
+        positionRibbonTooltip(position);
+      },
+      unpin: unpinTooltip,
+      isPinned: function() {
+        return pinnedRibbonId !== null;
+      }
+    };
 
     function inBBox(el, e, padding = 5) {
       const bbox = el.getBoundingClientRect();
@@ -585,6 +673,9 @@ document.addEventListener("DOMContentLoaded", function() {
         pinTooltip(chromSeg, e);
         return;
       }
+
+      // The WebGL picker owns ribbon and background clicks in this mode.
+      if (webglPickingMode) return;
 
       const poly = getRibbonUnderCursor(e);
       if (poly) {

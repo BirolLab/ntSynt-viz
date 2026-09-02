@@ -97,11 +97,11 @@ def main():
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
     output_group.add_argument(
-        "--interactive-renderer",
+        "--interactive-picking-method", "--interactive-renderer",
+        dest="interactive_picking_method",
         choices=["svg", "webgl"],
-        default="svg",
-        help="Ribbon interaction mode for the interactive HTML [svg]. "
-             "WebGL mode keeps SVG presentation quality and uses GPU hit-testing.",
+        default="webgl",
+        help=argparse.SUPPRESS,
     )
     output_group.add_argument("--annotate-genome-info",
                               help="Add annotations about number of sequences "
@@ -153,7 +153,7 @@ def main():
             f"format={args.format} " \
             f"height={args.height} " \
             f"width={args.width} " \
-            f"interactive_renderer={args.interactive_renderer} " \
+            f"interactive_picking_method={args.interactive_picking_method} " \
             f"min_seq_length={args.seq_length} "
 
     if args.name_conversion:

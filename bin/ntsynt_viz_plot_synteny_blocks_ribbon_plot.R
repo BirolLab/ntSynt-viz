@@ -51,11 +51,12 @@ parser$add_argument("--format", help = "Output format for image (png, pdf or svg
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
-parser$add_argument("--interactive-renderer",
-                    help = paste("Renderer for ribbons in the interactive HTML.",
+parser$add_argument("--interactive-picking-method", "--interactive-renderer",
+                    dest = "interactive_picking_method",
+                    help = paste("Picking method for ribbons in the interactive HTML.",
                                  "'svg' preserves the existing ggiraph output;",
-                                 "'webgl' keeps SVG ribbons visible and uses GPU hit-testing (default svg)."),
-                    default = "svg", choices = c("svg", "webgl"))
+                                 "'webgl' uses WebGL with an indexed CPU fallback (default webgl)."),
+                    default = "webgl", choices = c("svg", "webgl"))
 parser$add_argument("--annotate-genome-info", help = "Add annotations about number of sequences and genome size to the right of each bin",
                     action = "store_true")
 
@@ -480,13 +481,13 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
 
 # Make the ribbon plot
 log_message("Generating ribbon plot...")
-use_svg_ribbon_hit_layer <- args$interactive_renderer == "svg"
+use_svg_ribbon_hit_layer <- args$interactive_picking_method == "svg"
 synteny_plot_tmp <- make_plot(links_ntsynt, sequences, painting, colours_df, add_scale_bar = TRUE, centromeres = centromeres,
                               add_arrow = !args$no_arrow, haplotypes = haplotypes,
                               include_ribbon_hit_layer = use_svg_ribbon_hit_layer)
 synteny_plot <- synteny_plot_tmp$plot
 js_map       <- synteny_plot_tmp$js_map
-webgl_data   <- if (args$interactive_renderer == "webgl") synteny_plot_tmp$webgl_data else NULL
+webgl_data   <- if (args$interactive_picking_method == "webgl") synteny_plot_tmp$webgl_data else NULL
 
 
 if (is.null(args$tree)) {
@@ -581,7 +582,7 @@ js_inject <- gsub(
   fixed = TRUE
 )
 
-if (args$interactive_renderer == "webgl") {
+if (args$interactive_picking_method == "webgl") {
   webgl_template <- paste(
     readLines(paste(script_dir, "/ntsynt_viz_ribbon-webgl.js", sep=""), warn = FALSE),
     collapse = "\n"

@@ -72,7 +72,6 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
                      [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI]
-                     [--interactive-renderer {svg,webgl}]
                      [--annotate-genome-info] [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
@@ -121,8 +120,6 @@ output arguments:
   --height HEIGHT       Height of plot in cm [20]
   --width WIDTH         Width of plot in cm [55]
   --dpi DPI             Resolution of output plot - png output only [300]
-  --interactive-renderer {svg,webgl}
-                        Ribbon interaction mode for the interactive HTML [svg]. WebGL mode keeps SVG presentation quality and uses GPU hit-testing.
   --annotate-genome-info
                         Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
   --optimize-ordering   Optimize tree-guided genome sorting using inversions. Only use with strictly bifurcating trees.
@@ -148,13 +145,6 @@ ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tr
 #### Plot ribbon plots without input cladogram, skipping normalization of the assembly chromosome strands, specifying target (top) genome
 ```
 ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens
-```
-
-To test the experimental WebGL-assisted interaction mode for the interactive
-HTML, add
-`--interactive-renderer webgl` to either a tree or no-tree command:
-```
-ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --name_conversion great-apes.name-conversions.tsv --prefix checkpoint1 --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens --interactive-renderer webgl
 ```
 
 ![Example_ribbon_plot](https://github.com/BirolLab/ntSynt-viz/blob/main/tests/great-apes_ribbon-plots.example2.png)

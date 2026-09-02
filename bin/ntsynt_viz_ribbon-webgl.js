@@ -3,7 +3,7 @@
   "use strict";
 
   // Visible ribbons remain SVG for exact quality; WebGL only performs picking.
-  const rendererBuild = "svg-presentation-webgl-picking-v16";
+  const pickingBuild = "svg-presentation-webgl-picking-v16";
   const plotData = __WEBGL_RIBBON_DATA__;
   window.ntsyntWebGLPlotData = plotData;
   window.ntsyntWebGLPickingMode = true;
@@ -499,7 +499,7 @@
           screenToPlot: screenToPlot
         };
         container.dataset.ntsyntRenderer = "svg-with-indexed-picking";
-        container.dataset.ntsyntRendererBuild = rendererBuild;
+        container.dataset.ntsyntPickingBuild = pickingBuild;
         container.dataset.ntsyntPickingMethod = "cpu-indexed";
         if (!container.dataset.ntsyntInteractionInitMs) {
           container.dataset.ntsyntInteractionInitMs = String(Math.round(
@@ -542,7 +542,7 @@
 
       state = { bounds: bounds, ratio: ratio, zoomView: zoomView };
       container.dataset.ntsyntRenderer = "svg-with-webgl-picking";
-      container.dataset.ntsyntRendererBuild = rendererBuild;
+      container.dataset.ntsyntPickingBuild = pickingBuild;
       container.dataset.ntsyntPickingMethod = useCpuIndexedPicking
         ? "cpu-indexed"
         : "webgl-readpixels";

@@ -213,7 +213,7 @@ get_block_coord_info <- function(link_data, max_genome_len, max_chrom_len) {
     return(block_coords)
 }
 
-# Get the information/data about synteny links for interactive layers with ggiraph
+# Get the information/data about synteny links for interactive layers
 get_link_info <- function(link_data) {
   n_links <- nrow(link_data)
 

@@ -3,7 +3,7 @@
   "use strict";
 
   // Visible ribbons remain SVG for exact quality; WebGL only performs picking.
-  const pickingBuild = "1.1.0";
+  const pickingBuild = "1.1.1";
   const plotData = __WEBGL_RIBBON_DATA__;
   window.ntsyntWebGLPlotData = plotData;
   window.ntsyntWebGLPickingMode = true;

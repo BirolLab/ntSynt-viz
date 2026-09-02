@@ -3,7 +3,7 @@
   "use strict";
 
   // Visible ribbons remain SVG for exact quality; WebGL only performs picking.
-  const rendererBuild = "svg-presentation-webgl-picking-v15";
+  const rendererBuild = "svg-presentation-webgl-picking-v16";
   const plotData = __WEBGL_RIBBON_DATA__;
   window.ntsyntWebGLPlotData = plotData;
   window.ntsyntWebGLPickingMode = true;
@@ -378,26 +378,33 @@
     ].join("\n");
     document.head.appendChild(interactionStyles);
 
-    const useCpuIndexedPicking = plotData.links.block_id.length >= 20000;
+    let useCpuIndexedPicking = plotData.links.block_id.length >= 20000;
     const pickingCanvas = document.createElement("canvas");
-    const gl = useCpuIndexedPicking ? null : pickingCanvas.getContext("webgl", {
-        alpha: false,
-        antialias: false,
-        depth: false,
-        stencil: false,
-        premultipliedAlpha: false,
-        preserveDrawingBuffer: true,
-        powerPreference: "high-performance"
-      });
-    if (!useCpuIndexedPicking && !gl) {
-      console.error("ntSynt-viz: WebGL picking is unavailable in this browser.");
-      return;
+    let gl = null;
+    if (!useCpuIndexedPicking) {
+      try {
+        gl = pickingCanvas.getContext("webgl", {
+          alpha: false,
+          antialias: false,
+          depth: false,
+          stencil: false,
+          premultipliedAlpha: false,
+          preserveDrawingBuffer: true,
+          powerPreference: "high-performance"
+        });
+      } catch (error) {
+        console.warn("ntSynt-viz: WebGL context creation failed; using CPU picking.", error);
+      }
+      if (!gl) {
+        console.warn("ntSynt-viz: WebGL picking is unavailable; using CPU picking.");
+        useCpuIndexedPicking = true;
+      }
     }
 
-    const arrays = useCpuIndexedPicking
+    let arrays = useCpuIndexedPicking
       ? { ribbonsByBlock: buildRibbonsByBlock(plotData) }
       : buildPickingArrays(plotData);
-    const cpuPickingIndex = useCpuIndexedPicking
+    let cpuPickingIndex = useCpuIndexedPicking
       ? buildCpuPickingIndex(plotData)
       : null;
     let program;
@@ -418,7 +425,26 @@
       gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
       gl.bufferData(gl.ARRAY_BUFFER, arrays.pickColours, gl.STATIC_DRAW);
     }
-    if (!useCpuIndexedPicking) initializeGraphics();
+
+    function switchToCpuPicking(message, error) {
+      if (useCpuIndexedPicking) return;
+      useCpuIndexedPicking = true;
+      arrays = { ribbonsByBlock: buildRibbonsByBlock(plotData) };
+      cpuPickingIndex = buildCpuPickingIndex(plotData);
+      state = null;
+      console.warn(message, error || "");
+    }
+
+    if (!useCpuIndexedPicking) {
+      try {
+        initializeGraphics();
+      } catch (error) {
+        switchToCpuPicking(
+          "ntSynt-viz: WebGL picking initialization failed; using CPU picking.",
+          error
+        );
+      }
+    }
 
     function highlightPathData(blockId, panel) {
       const indices = arrays.ribbonsByBlock.get(String(blockId)) || [];
@@ -706,14 +732,19 @@
       }
     }
 
-    if (!useCpuIndexedPicking) {
+    if (gl) {
       pickingCanvas.addEventListener("webglcontextlost", function(event) {
         event.preventDefault();
-        state = null;
+        switchToCpuPicking(
+          "ntSynt-viz: WebGL context was lost; using CPU picking."
+        );
+        scheduleDraw();
       });
       pickingCanvas.addEventListener("webglcontextrestored", function() {
-        initializeGraphics();
-        scheduleDraw();
+        if (!useCpuIndexedPicking) {
+          initializeGraphics();
+          scheduleDraw();
+        }
       });
     }
     container.addEventListener("mousemove", schedulePick, true);

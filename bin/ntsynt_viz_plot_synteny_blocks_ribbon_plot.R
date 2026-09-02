@@ -299,9 +299,29 @@ build_js_maps <- function(link_data, target_genome, block_coords) {
     pull(entry) %>%
     paste(collapse = ",\n")
 
+  block_chrom_map <- bind_rows(
+    link_data %>% select(block_id, bin_id, seq_id),
+    link_data %>% transmute(block_id, bin_id = bin_id2, seq_id = seq_id2)
+  ) %>%
+    distinct() %>%
+    mutate(chrom_key = paste(bin_id, seq_id, sep = "::")) %>%
+    group_by(block_id) %>%
+    summarise(chrom_keys = list(unique(chrom_key)), .groups = "drop")
+
+  block_chrom_map_entries <- block_chrom_map %>%
+    rowwise() %>%
+    mutate(entry = paste0(
+      quote_js_string(block_id), ': [',
+      paste(quote_js_string(unlist(chrom_keys)), collapse = ","),
+      ']'
+    )) %>%
+    pull(entry) %>%
+    paste(collapse = ",\n")
+
   js_maps <- paste0(
     "const chromBlockMap = window.ntsyntChromBlockMap = {\n", js_map_entries, "\n};\n",
-    "const blockTooltipMap = window.ntsyntBlockTooltipMap = {\n", tooltip_map_entries, "\n};"
+    "const blockTooltipMap = window.ntsyntBlockTooltipMap = {\n", tooltip_map_entries, "\n};\n",
+    "const blockChromMap = window.ntsyntBlockChromMap = {\n", block_chrom_map_entries, "\n};"
   )
   return(js_maps)
 }
@@ -438,7 +458,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
         y     = y,
         yend  = y,
         tooltip  = tooltip,
-        data_id  = seq_id
+        data_id  = paste(bin_id, seq_id, sep = "::")
       ),
       linewidth = 3, # Increased area to hit for hover box
       alpha     = 0,

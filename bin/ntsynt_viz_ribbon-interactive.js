@@ -39,6 +39,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     svg.querySelectorAll("line[data-id], [data-id].chromosome").forEach(function(seg) {
       seg.classList.add("ntsynt-chromosome-hit");
+      const fade = seg.cloneNode(false);
+      fade.removeAttribute("data-id");
+      fade.removeAttribute("data-tooltip");
+      fade.classList.remove("ntsynt-chromosome-hit");
+      fade.classList.add("ntsynt-chromosome-legend-fade");
+      fade.style.pointerEvents = "none";
+      seg.parentNode.insertBefore(fade, seg);
+      seg._ntsyntLegendFade = fade;
     });
 
     // Render hover feedback in a separate, lightweight SVG so changing the
@@ -130,6 +138,8 @@ document.addEventListener("DOMContentLoaded", function() {
       ".ntsynt-ribbon-hit.ntsynt-legend-inactive { opacity:0.6 !important; fill:white !important; fill-opacity:0.6 !important; }",
       ".ntsynt-ribbon-visual.ntsynt-legend-selected { opacity:0.9 !important; fill-opacity:0.9 !important; }",
       ".ntsynt-ribbon-visual.ntsynt-legend-inactive { opacity:0.6 !important; fill:white !important; fill-opacity:0.6 !important; }",
+      ".ntsynt-chromosome-legend-fade { stroke:white !important; stroke-width:5px !important; stroke-opacity:0 !important; vector-effect:non-scaling-stroke; }",
+      ".ntsynt-chromosome-legend-fade.ntsynt-legend-inactive { stroke-opacity:0.55 !important; }",
       ".ntsynt-ggiraph-tooltip-suppressed { opacity:0 !important; }"
     ].join("\n");
     document.head.appendChild(interactionStyles);
@@ -476,20 +486,36 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const activeChromosomes = new Set();
 
-    // WebGL mode changes one ribbon-group opacity and a small set of chromosome
-    // overlay paths. SVG mode retains the original per-polygon fallback.
+    // Both picking modes use lightweight chromosome fade overlays. WebGL mode
+    // changes grouped ribbon paths; SVG mode retains the per-polygon fallback.
     function applyLegendState() {
-        if (webglPickingMode && window.ntsyntWebGLLegendController) {
-          window.ntsyntWebGLLegendController.apply(Array.from(activeChromosomes));
-          return;
-        }
         const activeBlockIds = new Set();
+        const incidentChromosomes = new Set();
 
         activeChromosomes.forEach(function(c) {
             legendChromMap[c].forEach(function(bid) {
               activeBlockIds.add(String(bid));
             });
         });
+
+        activeBlockIds.forEach(function(bid) {
+          (blockChromMap[bid] || []).forEach(function(chromKey) {
+            incidentChromosomes.add(String(chromKey));
+          });
+        });
+
+        svg.querySelectorAll(".ntsynt-chromosome-hit").forEach(function(seg) {
+          const incident = incidentChromosomes.has(seg.getAttribute("data-id"));
+          if (seg._ntsyntLegendFade) {
+            seg._ntsyntLegendFade.classList.toggle("ntsynt-legend-inactive",
+              activeChromosomes.size > 0 && !incident);
+          }
+        });
+
+        if (webglPickingMode && window.ntsyntWebGLLegendController) {
+          window.ntsyntWebGLLegendController.apply(Array.from(activeChromosomes));
+          return;
+        }
 
         ribbonPolys.forEach(function(poly) {
           const bid = poly.getAttribute("data-ntsynt-id");

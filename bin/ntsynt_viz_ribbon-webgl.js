@@ -3,7 +3,7 @@
   "use strict";
 
   // Visible ribbons remain SVG for exact quality; WebGL only performs picking.
-  const pickingBuild = "svg-presentation-webgl-picking-v16";
+  const pickingBuild = "1.1.0";
   const plotData = __WEBGL_RIBBON_DATA__;
   window.ntsyntWebGLPlotData = plotData;
   window.ntsyntWebGLPickingMode = true;
@@ -378,7 +378,7 @@
     ].join("\n");
     document.head.appendChild(interactionStyles);
 
-    let useCpuIndexedPicking = plotData.links.block_id.length >= 20000;
+    let useCpuIndexedPicking = plotData.links.block_id.length >= 5000;
     const pickingCanvas = document.createElement("canvas");
     let gl = null;
     if (!useCpuIndexedPicking) {

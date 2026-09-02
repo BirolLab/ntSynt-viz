@@ -61,6 +61,12 @@ parser$add_argument("--annotate-genome-info", help = "Add annotations about numb
 
 args <- parser$parse_args()
 
+# Print console messages with a date/time prefix.
+log_message <- function(...) {
+  message <- paste(..., collapse = " ")
+  cat(sprintf("[%s] %s\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), message))
+}
+
 #############################
 # Prepare data
 #############################
@@ -90,7 +96,7 @@ links_ntsynt <- read.csv(args$links,
   mutate(bin_id = str_replace_all(bin_id, "_", " "),
          bin_id2 = str_replace_all(bin_id2, "_", " "))
 target_genome <- links_ntsynt %>% head(1) %>% select(bin_id) %>% pull()
-print(paste("Target genome:", target_genome))
+log_message("Target genome:", target_genome)
 links_ntsynt$seq_id <- factor(links_ntsynt$seq_id,
                               levels = input_chrom_order)
 links_ntsynt <- links_ntsynt %>% arrange(factor(seq_id, levels = input_chrom_order))
@@ -459,7 +465,13 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     links = webgl_links
   )
 
-  return(list(plot = plot, js_map = js_map, webgl_data = webgl_data))
+  return(list(
+    plot = plot,
+    js_map = js_map,
+    webgl_data = webgl_data,
+    x_range = unname(panel_params$x.range),
+    y_range = unname(panel_params$y.range)
+  ))
 }
 
 #############################
@@ -467,10 +479,14 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
 #############################
 
 # Make the ribbon plot
+log_message("Generating ribbon plot...")
+use_svg_ribbon_hit_layer <- args$interactive_renderer == "svg"
 synteny_plot_tmp <- make_plot(links_ntsynt, sequences, painting, colours_df, add_scale_bar = TRUE, centromeres = centromeres,
-                              add_arrow = !args$no_arrow, haplotypes = haplotypes)
+                              add_arrow = !args$no_arrow, haplotypes = haplotypes,
+                              include_ribbon_hit_layer = use_svg_ribbon_hit_layer)
 synteny_plot <- synteny_plot_tmp$plot
 js_map       <- synteny_plot_tmp$js_map
+webgl_data   <- if (args$interactive_renderer == "webgl") synteny_plot_tmp$webgl_data else NULL
 
 
 if (is.null(args$tree)) {
@@ -479,7 +495,7 @@ if (is.null(args$tree)) {
 } else {
   # Prepare the tree
   ntsynt_tree <- treeio::read.newick(args$tree)
-  print(ntsynt_tree)
+  log_message(capture.output(print(ntsynt_tree)))
 
   if (!is.null(args$order)) {
     orders <- read.csv(args$order, sep = "\t", header = FALSE)
@@ -495,13 +511,13 @@ if (is.null(args$tree)) {
     new_tree <- rotateConstr(tree_phylo, desired_order)
     new_tree <- rename_taxa(new_tree, name_conversions)
     ntsynt_ggtree <- ggtree(new_tree, branch.length = "none", ladderize = FALSE)
-
     tip_order_plot <- ntsynt_ggtree$data[ntsynt_ggtree$data$isTip, ] %>%
       arrange(y) %>%
       pull(label)
     if (! identical(tip_order_plot, str_replace_all(desired_order, "_", " "))) {
-      print(tip_order_plot)
-      print(str_replace_all(desired_order, "_", " "))
+      log_message("Tip order in plot:", paste(tip_order_plot, collapse = ", "))
+      log_message("Desired tip order:",
+                  paste(str_replace_all(desired_order, "_", " "), collapse = ", "))
       stop("Error: Tip order in the plot does not match the new tree after rotation.")
     }
   } else {
@@ -510,7 +526,7 @@ if (is.null(args$tree)) {
   }
 
   # Align the plots properly
-  synteny_y_range <- ggplot_build(synteny_plot)$layout$panel_params[[1]]$y.range
+  synteny_y_range <- synteny_plot_tmp$y_range
 
   plots <- ggarrange(
     ntsynt_ggtree + scale_y_continuous(limits = synteny_y_range, expand = c(0, 0)),
@@ -531,51 +547,24 @@ if (any_rc && !args$no_arrow) {
 if (args$format == "pdf") {
   ggsave(paste0(args$prefix, ".pdf"), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
-  cat(paste("Plot saved:", paste0(args$prefix, ".pdf"), "\n"))
+  log_message("Plot saved:", paste0(args$prefix, ".pdf"))
 } else if (args$format == "svg") {
   ggsave(paste0(args$prefix, ".svg"), plots,
          units = "cm", width = args$width, height = args$height, bg = "white")
-  cat(paste("Plot saved:", paste0(args$prefix, ".svg"), "\n"))
+  log_message("Plot saved:", paste0(args$prefix, ".svg"))
 } 
 png(paste0(args$prefix, ".png"), units = "cm", width = args$width, height = args$height,
     res = args$dpi, bg = "white")
 print(plots)
 dev.off()
-cat(paste("Plot saved:", paste0(args$prefix, ".png"), "\n"))
+log_message("Plot saved:", paste0(args$prefix, ".png"))
 
 
 
 # Prepare interactive HTML
 interactive_plots <- plots
-webgl_data <- NULL
 
-if (args$interactive_renderer == "webgl") {
-  webgl_plot_tmp <- make_plot(
-    links_ntsynt, sequences, painting, colours_df,
-    add_scale_bar = TRUE,
-    centromeres = centromeres,
-    add_arrow = !args$no_arrow,
-    haplotypes = haplotypes,
-    include_ribbon_hit_layer = FALSE
-  )
-  interactive_plots <- webgl_plot_tmp$plot
-  js_map <- webgl_plot_tmp$js_map
-  webgl_data <- webgl_plot_tmp$webgl_data
-
-  if (!is.null(args$tree)) {
-    webgl_y_range <- ggplot_build(interactive_plots)$layout$panel_params[[1]]$y.range
-    interactive_plots <- ggarrange(
-      ntsynt_ggtree + scale_y_continuous(limits = webgl_y_range, expand = c(0, 0)),
-      (interactive_plots %>% pick_by_tree(ntsynt_ggtree)),
-      common.legend = TRUE, align = "hv",
-      widths = c(1, 10), legend = "bottom"
-    )
-  }
-
-  if (any_rc && !args$no_arrow) {
-    interactive_plots <- ggarrange(interactive_plots, note, ncol = 1, heights = c(10, 1))
-  }
-}
+log_message("Generating interactive HTML...")
 
 command_args <- commandArgs(trailingOnly = FALSE)
 script_arg <- command_args[grep("--file=", command_args)]
@@ -644,4 +633,4 @@ html_content <- append(html_content, css_override, after = head_close - 1)
 body_close <- which(grepl("</body>", html_content))
 html_content <- append(html_content, js_inject, after = body_close - 1)
 writeLines(html_content, html_file)
-cat(paste("Interactive HTML saved:", html_file, "\n"))
+log_message("Interactive HTML saved:", html_file)

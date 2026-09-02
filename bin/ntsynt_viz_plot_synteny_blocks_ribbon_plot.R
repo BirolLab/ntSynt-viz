@@ -455,8 +455,8 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
       aes(
         x     = x,
         xend  = xend,
-        y     = y,
-        yend  = y,
+        y     = get_y_coord(haplotypes, .data$bin_id, .data$y),
+        yend  = get_y_coord(haplotypes, .data$bin_id, .data$y),
         tooltip  = tooltip,
         data_id  = paste(bin_id, seq_id, sep = "::")
       ),

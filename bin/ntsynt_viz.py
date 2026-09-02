@@ -7,7 +7,7 @@ import shlex
 import subprocess
 import os
 
-NTSYNT_VIZ_VERSION = "1.1.0"
+NTSYNT_VIZ_VERSION = "1.1.1"
 
 def read_fai_files(fai_file):
     "Read the FAI files from the file of files"

@@ -146,6 +146,7 @@ ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tr
 ```
 ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv  --prefix great-apes_ribbon-plots_no-tree --ribbon_adjust 0.15 --scale 1e9 --target-genome Homo_sapiens
 ```
+
 ![Example_ribbon_plot](https://github.com/BirolLab/ntSynt-viz/blob/main/tests/great-apes_ribbon-plots.example2.png)
 
 For more information about the output files from ntSynt-viz, check out our [wiki page](https://github.com/BirolLab/ntSynt-viz/wiki).

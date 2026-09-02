@@ -96,6 +96,13 @@ def main():
     output_group.add_argument("--width", help="Width of plot in cm [55]", required=False, type=int, default=55)
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
+    output_group.add_argument(
+        "--interactive-picking-method", "--interactive-renderer",
+        dest="interactive_picking_method",
+        choices=["svg", "webgl"],
+        default="webgl",
+        help=argparse.SUPPRESS,
+    )
     output_group.add_argument("--annotate-genome-info",
                               help="Add annotations about number of sequences "
                                   "and genome size to the right of each genome in the ribbon plot",
@@ -146,6 +153,7 @@ def main():
             f"format={args.format} " \
             f"height={args.height} " \
             f"width={args.width} " \
+            f"interactive_picking_method={args.interactive_picking_method} " \
             f"min_seq_length={args.seq_length} "
 
     if args.name_conversion:

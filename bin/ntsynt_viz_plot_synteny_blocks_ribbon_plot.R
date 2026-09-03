@@ -82,7 +82,7 @@ log_message <- function(...) {
 
 # Read in and prepare sequences
 sequences <- read.csv(args$sequences, sep = "\t", header = TRUE) %>%
-  mutate(relative_orientation = if_else(relative_orientation == "+", "", "\u2190"))
+  mutate(relative_orientation = if_else(relative_orientation == "+", "", "\u2B60"))
 
 
 # Prepare name conversions for tree
@@ -386,7 +386,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     plot <- plot + geom_seq_label(aes(label = relative_orientation, 
                                       x = pmax(.data$x, .data$xend),
                                       y = get_y_coord(haplotypes, bin_id, .data$y)), nudge_y = -0.05, 
-                                  size = 3.25, hjust = 1) 
+                                  size = 4.5, hjust = 1.2, fontface = "bold") 
   }
   xmax <- ggplot_build(plot)$layout$panel_params[[1]]$x.range[[2]]
   plot <- plot + xlim(0 - xmax * args$ratio, NA)

@@ -1,5 +1,5 @@
 ![GitHub Release](https://img.shields.io/github/v/release/BirolLab/ntsynt-viz?display_name=release)
-[![Preprint](https://img.shields.io/badge/ntSynt--viz-Preprint-6f42c1)](https://www.biorxiv.org/content/10.1101/2025.01.15.633221v2)
+[![Manuscript](https://img.shields.io/badge/ntSynt--viz-Manuscript-6f42c1)](https://doi.org/10.1093/jeb/voag079)
 
 
 ![Logo](https://github.com/BirolLab/ntSynt-viz/blob/main/ntsynt-viz_logo_colors.png)
@@ -183,16 +183,12 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/BirolLab/ntSynt
 
 If you use nSynt-viz, please cite:
 
-Coombe L, Kazemi P, Wong J, Birol I, Warren RL. 2025. ntSynt: multi-genome synteny detection using minimizer graph mappings. BMC Biology. 23:367. https://doi.org/10.1186/s12915-025-02455-w
+Coombe L, Warren RL, Birol I. 2026. ntSynt-viz: Visualizing synteny patterns across multiple genomes. Journal of Evolutionary Biology. voag079. https://doi.org/10.1093/jeb/voag079
 
 and
 
-[ntSynt-viz: Visualizing synteny patterns across multiple genomes](https://doi.org/10.1101/2025.01.15.633221)
-<pre>
-ntSynt-viz: Visualizing synteny patterns across multiple genomes
-Lauren Coombe, Rene L Warren, Inanc Birol
-bioRxiv 2025.01.15.633221; doi: https://doi.org/10.1101/2025.01.15.633221
-</pre>
+Coombe L, Kazemi P, Wong J, Birol I, Warren RL. 2025. ntSynt: multi-genome synteny detection using minimizer graph mappings. BMC Biology. 23:367. https://doi.org/10.1186/s12915-025-02455-w
+
 
 ## License <a name=license></a>
 ntSynt-viz Copyright (c) 2025-present British Columbia Cancer Agency Branch. All rights reserved.

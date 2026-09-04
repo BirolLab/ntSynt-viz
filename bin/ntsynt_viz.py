@@ -96,6 +96,13 @@ def main():
     output_group.add_argument("--width", help="Width of plot in cm [55]", required=False, type=int, default=55)
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
+    output_group.add_argument("--html-title",
+                              help="Title displayed above the interactive HTML ribbon plot; "
+                                   "supports <em> and <i> tags for italics",
+                              required=False, type=str)
+    output_group.add_argument("--html-image",
+                              help="PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title",
+                              required=False, type=str)
     output_group.add_argument(
         "--interactive-picking-method", "--interactive-renderer",
         dest="interactive_picking_method",
@@ -132,6 +139,9 @@ def main():
     if args.name_conversion:
         check_name_conversion(args.name_conversion, parser)
 
+    if args.html_image and not os.path.isfile(args.html_image):
+        parser.error(f"HTML image file not found: {args.html_image}")
+
     if args.target_genome and args.order:
         parser.error("Please specify only one of --target-genome or --order, not both.")
 
@@ -155,6 +165,11 @@ def main():
             f"width={args.width} " \
             f"interactive_picking_method={args.interactive_picking_method} " \
             f"min_seq_length={args.seq_length} "
+
+    if args.html_title:
+        cmd += f"html_title={shlex.quote(args.html_title)} "
+    if args.html_image:
+        cmd += f"html_image={shlex.quote(os.path.abspath(args.html_image))} "
 
     if args.name_conversion:
         cmd += f"name_conversion={args.name_conversion} "

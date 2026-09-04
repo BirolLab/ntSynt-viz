@@ -46,7 +46,7 @@ jobs:
       source activate ntsynt_viz_ci
       export PATH=$(pwd)/bin:$PATH
       cd tests
-      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tree great-apes.mt-tree.nwk --name_conversion great-apes.name-conversions.tsv --normalize --prefix great-apes_ribbon-plots --ribbon_adjust 0.14 --scale 1e9 --target-genome Homo_sapiens
+      ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv --tree great-apes.mt-tree.nwk --name_conversion great-apes.name-conversions.tsv --normalize --prefix great-apes_ribbon-plots --ribbon_adjust 0.14 --scale 1e9 --target-genome Homo_sapiens --html-title "Multi-genome synteny of primate genomes" --html-image Gorilla.png # Image source: https://commons.wikimedia.org/wiki/File:Fotografia_de_gorila_baixa_satura%C3%A7%C3%A3o_4_agosto_2017.png
     displayName: Run Example 1 test (PNG output)
 
   - script: |

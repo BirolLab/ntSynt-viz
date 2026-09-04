@@ -72,7 +72,8 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
                      [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI]
-                     [--annotate-genome-info] [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
+                     [--html-title HTML_TITLE] [--html-image HTML_IMAGE] [--annotate-genome-info] [--optimize-ordering] [--no-arrow]
+                     [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
 
@@ -120,6 +121,10 @@ output arguments:
   --height HEIGHT       Height of plot in cm [20]
   --width WIDTH         Width of plot in cm [55]
   --dpi DPI             Resolution of output plot - png output only [300]
+  --html-title HTML_TITLE
+                        Title displayed above the interactive HTML ribbon plot; supports <em> and <i> tags for italics
+  --html-image HTML_IMAGE
+                        PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title
   --annotate-genome-info
                         Add annotations about number of sequences and genome size to the right of each genome in the ribbon plot
   --optimize-ordering   Optimize tree-guided genome sorting using inversions. Only use with strictly bifurcating trees.
@@ -164,7 +169,7 @@ Interactive elements include:
 
 Example interactive ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
 
-<video src="https://github.com/user-attachments/assets/d8263726-b1dc-48c6-8ec0-fd60021add84"
+<video src="https://github.com/user-attachments/assets/25c9cd93-89b2-44cc-8376-901e7d2ca99c"
        autoplay
        loop
        muted

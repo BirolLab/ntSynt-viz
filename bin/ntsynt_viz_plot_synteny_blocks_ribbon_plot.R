@@ -51,6 +51,11 @@ parser$add_argument("--format", help = "Output format for image (png, pdf or svg
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
+parser$add_argument("--html-title", help = paste("Title displayed above the interactive HTML ribbon plot;",
+                                                 "supports <em> and <i> tags for italics"),
+                    required = FALSE, default = NULL)
+parser$add_argument("--html-image", help = "PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title",
+                    required = FALSE, default = NULL)
 parser$add_argument("--interactive-picking-method", "--interactive-renderer",
                     dest = "interactive_picking_method",
                     help = paste("Picking method for ribbons in the interactive HTML.",
@@ -61,6 +66,10 @@ parser$add_argument("--annotate-genome-info", help = "Add annotations about numb
                     action = "store_true")
 
 args <- parser$parse_args()
+
+if (!is.null(args$html_image) && !file.exists(args$html_image)) {
+  stop("HTML image file not found: ", args$html_image)
+}
 
 # Print console messages with a date/time prefix.
 log_message <- function(...) {
@@ -375,10 +384,10 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
           colour = guide_legend(title = ""))
 
   if (add_arrow) {
-    plot <- plot + geom_seq_label(aes(label = relative_orientation, 
+    plot <- plot + geom_seq_label(aes(label = relative_orientation,
                                       x = pmax(.data$x, .data$xend),
-                                      y = get_y_coord(haplotypes, bin_id, .data$y)), nudge_y = -0.05, 
-                                  size = 3.25, hjust = 1) 
+                                      y = get_y_coord(haplotypes, bin_id, .data$y)), nudge_y = -0.05,
+                                  size = 5, hjust = 1, fontface = "bold")
   }
   xmax <- ggplot_build(plot)$layout$panel_params[[1]]$x.range[[2]]
   plot <- plot + xlim(0 - xmax * args$ratio, NA)
@@ -638,19 +647,75 @@ interactive_plot <- girafe(
   )
 )
 
-# Inject CSS to ensure the interactive plot fills a browser window
+# Prepare an optional page header and inject CSS to ensure the interactive plot fills a browser window
+has_html_header <- !is.null(args$html_title) || !is.null(args$html_image)
+page_title <- if (!is.null(args$html_title)) args$html_title else args$prefix
+document_title <- gsub("</?(?:em|i)>", "", page_title, ignore.case = TRUE, perl = TRUE)
+html_header <- NULL
+
+format_html_title <- function(title) {
+  formatted_title <- htmltools::htmlEscape(title)
+  formatted_title <- gsub("&lt;(/?)em&gt;", "<\\1em>", formatted_title,
+                          ignore.case = TRUE, perl = TRUE)
+  formatted_title <- gsub("&lt;(/?)i&gt;", "<\\1i>", formatted_title,
+                          ignore.case = TRUE, perl = TRUE)
+  htmltools::HTML(formatted_title)
+}
+
+if (has_html_header) {
+  header_image <- NULL
+  if (!is.null(args$html_image)) {
+    image_extension <- tolower(tools::file_ext(args$html_image))
+    image_mime_types <- c(
+      png = "image/png",
+      jpg = "image/jpeg",
+      jpeg = "image/jpeg",
+      gif = "image/gif",
+      svg = "image/svg+xml",
+      webp = "image/webp"
+    )
+    image_mime <- unname(image_mime_types[image_extension])
+    if (is.na(image_mime)) {
+      stop(
+        "Unsupported HTML image format: .", image_extension,
+        ". Use PNG, JPEG, GIF, SVG, or WebP."
+      )
+    }
+    image_uri <- base64enc::dataURI(file = args$html_image, mime = image_mime)
+    header_image <- htmltools::tags$img(
+      class = "ntsynt-html-header-image",
+      src = image_uri,
+      alt = ""
+    )
+  }
+
+  html_header <- as.character(htmltools::tags$header(
+    class = "ntsynt-html-header",
+    header_image,
+    htmltools::tags$h1(format_html_title(page_title))
+  ))
+}
+
+widget_height <- if (has_html_header) "calc(100vh - 100px)" else "90vh"
 css_override <- paste(
   "<style>",
-  ".girafe.html-widget { width: 100% !important; height: 90vh !important; }",
+  sprintf(".girafe.html-widget { width: 100%% !important; height: %s !important; }", widget_height),
+  ".ntsynt-html-header { display: flex; align-items: center; gap: 1rem; min-height: 76px; padding: 12px 20px; box-sizing: border-box; font-family: sans-serif; }",
+  ".ntsynt-html-header h1 { margin: 0; font-size: 2rem; line-height: 1.2; }",
+  ".ntsynt-html-header-image { max-width: 240px; max-height: 72px; object-fit: contain; }",
   "</style>",
   sep = "\n"
 )
 
 html_file <- paste0(args$prefix, ".html")
-htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = args$prefix)
+htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = document_title)
 html_content <- readLines(html_file, warn = FALSE)
 head_close <- which(grepl("</head>", html_content))
 html_content <- append(html_content, css_override, after = head_close - 1)
+if (has_html_header) {
+  body_open <- which(grepl("<body(?:\\s[^>]*)?>", html_content, perl = TRUE))[1]
+  html_content <- append(html_content, html_header, after = body_open)
+}
 body_close <- which(grepl("</body>", html_content))
 html_content <- append(html_content, js_inject, after = body_close - 1)
 writeLines(html_content, html_file)

@@ -97,7 +97,8 @@ def main():
     output_group.add_argument("--dpi", help="Resolution of output plot - png output only [300]",
                               required=False, type=int, default=300)
     output_group.add_argument("--html-title",
-                              help="Title displayed above the interactive HTML ribbon plot",
+                              help="Title displayed above the interactive HTML ribbon plot; "
+                                   "supports <em> and <i> tags for italics",
                               required=False, type=str)
     output_group.add_argument("--html-image",
                               help="PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title",

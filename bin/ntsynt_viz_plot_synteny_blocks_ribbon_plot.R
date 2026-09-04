@@ -51,7 +51,8 @@ parser$add_argument("--format", help = "Output format for image (png, pdf or svg
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
-parser$add_argument("--html-title", help = "Title displayed above the interactive HTML ribbon plot",
+parser$add_argument("--html-title", help = paste("Title displayed above the interactive HTML ribbon plot;",
+                                                 "supports <em> and <i> tags for italics"),
                     required = FALSE, default = NULL)
 parser$add_argument("--html-image", help = "PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title",
                     required = FALSE, default = NULL)
@@ -82,7 +83,7 @@ log_message <- function(...) {
 
 # Read in and prepare sequences
 sequences <- read.csv(args$sequences, sep = "\t", header = TRUE) %>%
-  mutate(relative_orientation = if_else(relative_orientation == "+", "", "\u2B60"))
+  mutate(relative_orientation = if_else(relative_orientation == "+", "", "\u2190"))
 
 
 # Prepare name conversions for tree
@@ -383,10 +384,10 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
           colour = guide_legend(title = ""))
 
   if (add_arrow) {
-    plot <- plot + geom_seq_label(aes(label = relative_orientation, 
+    plot <- plot + geom_seq_label(aes(label = relative_orientation,
                                       x = pmax(.data$x, .data$xend),
-                                      y = get_y_coord(haplotypes, bin_id, .data$y)), nudge_y = -0.05, 
-                                  size = 4.5, hjust = 1.2, fontface = "bold") 
+                                      y = get_y_coord(haplotypes, bin_id, .data$y)), nudge_y = -0.05,
+                                  size = 5, hjust = 1, fontface = "bold")
   }
   xmax <- ggplot_build(plot)$layout$panel_params[[1]]$x.range[[2]]
   plot <- plot + xlim(0 - xmax * args$ratio, NA)
@@ -649,7 +650,17 @@ interactive_plot <- girafe(
 # Prepare an optional page header and inject CSS to ensure the interactive plot fills a browser window
 has_html_header <- !is.null(args$html_title) || !is.null(args$html_image)
 page_title <- if (!is.null(args$html_title)) args$html_title else args$prefix
+document_title <- gsub("</?(?:em|i)>", "", page_title, ignore.case = TRUE, perl = TRUE)
 html_header <- NULL
+
+format_html_title <- function(title) {
+  formatted_title <- htmltools::htmlEscape(title)
+  formatted_title <- gsub("&lt;(/?)em&gt;", "<\\1em>", formatted_title,
+                          ignore.case = TRUE, perl = TRUE)
+  formatted_title <- gsub("&lt;(/?)i&gt;", "<\\1i>", formatted_title,
+                          ignore.case = TRUE, perl = TRUE)
+  htmltools::HTML(formatted_title)
+}
 
 if (has_html_header) {
   header_image <- NULL
@@ -681,7 +692,7 @@ if (has_html_header) {
   html_header <- as.character(htmltools::tags$header(
     class = "ntsynt-html-header",
     header_image,
-    htmltools::tags$h1(page_title)
+    htmltools::tags$h1(format_html_title(page_title))
   ))
 }
 
@@ -697,7 +708,7 @@ css_override <- paste(
 )
 
 html_file <- paste0(args$prefix, ".html")
-htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = page_title)
+htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = document_title)
 html_content <- readLines(html_file, warn = FALSE)
 head_close <- which(grepl("</head>", html_content))
 html_content <- append(html_content, css_override, after = head_close - 1)

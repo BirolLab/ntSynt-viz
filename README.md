@@ -162,8 +162,6 @@ To visualize synteny information in pangenome graphs or from synteny block detec
 ## Interactive plots
 As of v1.1.0, ntSynt-viz generates an HTML file to allow interactive exploration of the ribbon plot.
 
-Use `--html-title "My ribbon plot" --html-image logo.png` to add a title and adjacent image to the interactive page. The image is embedded in the self-contained HTML output. The title accepts `<em>` or `<i>` tags for italic text; for example, `--html-title "Synteny in <em>Capsicum</em> species"`.
-
 Interactive elements include:
 * Hover/click on a ribbon to highlight the entire synteny block and display block coordinates and orientations
 * Hover/click on a chromosome to display ID and length
@@ -171,7 +169,7 @@ Interactive elements include:
 
 Example interactive ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
 
-<video src="https://github.com/user-attachments/assets/d8263726-b1dc-48c6-8ec0-fd60021add84"
+<video src="https://github.com/user-attachments/assets/634699d8-a92e-484d-a771-eb5b84b25d38"
        autoplay
        loop
        muted

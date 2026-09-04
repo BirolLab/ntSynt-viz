@@ -149,9 +149,10 @@ document.addEventListener("DOMContentLoaded", function() {
     let pinnedRibbonId = null;
     let plotInteractionFrozen = false;
 
-    // ggiraph owns chromosome hover tooltips independently of the ribbon
-    // tooltip below. Freeze its pointer handlers and tooltip while a custom
-    // tooltip is pinned so the rest of the plot remains inert.
+    // SVG mode uses ggiraph's native chromosome hover tooltip. WebGL mode uses
+    // the custom tooltip below, so suppress ggiraph's copy in that mode.
+    // Freeze ggiraph's pointer handlers and tooltip while any custom tooltip
+    // is pinned so the rest of the plot remains inert.
     const ggiraphTooltip = document.getElementsByClassName("tooltip_" + svg.id)[0] || null;
     // In WebGL mode chromosome hover uses the same deterministic custom
     // tooltip as ribbons. Keeping ggiraph's tooltip suppressed avoids its
@@ -415,17 +416,24 @@ document.addEventListener("DOMContentLoaded", function() {
       if (chromosome) {
         cancelPendingRibbonHover();
         setHoveredRibbon(null);
-        const tooltipText = getElementTooltip(chromosome);
-        if (tooltipText) {
-          if (hoveredChromosomeElement !== chromosome) {
-            contentDiv.textContent = tooltipText;
-            hoveredChromosomeElement = chromosome;
+        hideRibbonTooltip();
+
+        // ggiraph owns chromosome hover in SVG mode. Only WebGL mode should
+        // also route chromosome hover through the custom tooltip controller.
+        if (webglPickingMode) {
+          const tooltipText = getElementTooltip(chromosome);
+          if (tooltipText) {
+            if (hoveredChromosomeElement !== chromosome) {
+              contentDiv.textContent = tooltipText;
+              hoveredChromosomeElement = chromosome;
+            }
+            showRibbonTooltip();
+            positionRibbonTooltip(e);
+          } else {
+            hoveredChromosomeElement = null;
           }
-          showRibbonTooltip();
-          positionRibbonTooltip(e);
         } else {
           hoveredChromosomeElement = null;
-          hideRibbonTooltip();
         }
         return;
       }

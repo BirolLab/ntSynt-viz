@@ -169,7 +169,7 @@ Interactive elements include:
 
 Example interactive ribbon plot: https://www.birollab.ca/viz/ntsynt-viz.cheilosia_ribbon-plot_tree.html
 
-<video src="https://github.com/user-attachments/assets/634699d8-a92e-484d-a771-eb5b84b25d38"
+<video src="https://github.com/user-attachments/assets/25c9cd93-89b2-44cc-8376-901e7d2ca99c"
        autoplay
        loop
        muted

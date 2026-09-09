@@ -62,8 +62,8 @@ conda install -c conda-forge -c bioconda ntsynt-viz
 ### Running ntSynt-viz using the source code
 Once all dependencies are installed, download the source code tarball, and add the `bin` directory to your PATH
 ```
-wget https://github.com/BirolLab/ntSynt-viz/releases/download/v1.1.1/ntSynt-viz-1.1.1.tar.gz
-tar xvzf ntSynt-viz-1.1.1.tar.gz
+wget https://github.com/BirolLab/ntSynt-viz/releases/download/v1.1.2/ntSynt-viz-1.1.2.tar.gz
+tar xvzf ntSynt-viz-1.1.2.tar.gz
 export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 

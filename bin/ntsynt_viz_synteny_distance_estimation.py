@@ -108,6 +108,8 @@ def compare_block_consistencies(blocks, num_blocks, assembly_pairs, indel_thresh
 
 def calculate_distance(pairwise_estimates):
     "Calculate the distance based on the consistency bit vector"
+    if len(pairwise_estimates) < 1:
+        return 0
     bit_dist = 1 - (sum(1 for is_consistent in pairwise_estimates if is_consistent)/len(pairwise_estimates))
     return bit_dist
 

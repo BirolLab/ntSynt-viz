@@ -38,6 +38,13 @@ if (is.null(treefile$edge.length)) {
   treefile
 }
 
+# If all edge lengths exist and are zero, set all branch lengths to 1
+if (all(treefile$edge.length == 0)) {
+  cat(paste("All edge lengths are zero in the tree: ", args$nwk, ". Setting all branch lengths to 1.\n", sep=""))
+  treefile$edge.length <- rep(1, nrow(treefile$edge))
+  treefile
+}
+
 if (!is.rooted(treefile)) {
   cat("Tree is not rooted. Midpoint rooting the tree.\n")
   treefile <- phytools::midpoint_root(treefile)

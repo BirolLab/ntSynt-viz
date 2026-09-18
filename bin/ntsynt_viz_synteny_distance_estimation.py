@@ -122,7 +122,7 @@ def main():
 
     blocks_filename = sys.argv[1]
     indel_threshold = int(sys.argv[2])
-    blocks, num_blocks, assemblies = load_blocks(blocks_filename)        
+    blocks, num_blocks, assemblies = load_blocks(blocks_filename)
 
     all_assembly_pairs = sorted([(asm1, asm2) if asm1 < asm2 else (asm2, asm1) \
                                 for asm1, asm2 in itertools.combinations(assemblies, 2)])

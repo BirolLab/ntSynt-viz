@@ -126,7 +126,7 @@ def main():
         help="Ratio for adjusting spacing beside ribbon plot. "
         "Increase if ribbon plot labels are cut off, and decrease to reduce  "
         "the white space to the left of the ribbon plot [0.1]",
-        default=0.1, type=float, required=False
+        default="auto", type=str, required=False
     )
     execution_group.add_argument("-f", "--force", help="Force a re-run of the entire pipeline", action="store_true")
     execution_group.add_argument("-n", help="Dry-run for snakemake pipeline", action="store_true")

@@ -36,9 +36,9 @@ parser$add_argument("--haplotypes", help = "TSV with haplotype nudges", required
 parser$add_argument("--colour_indices", help = "TSV with information about colour selection", required = TRUE)
 parser$add_argument("--ratio",
                     help = paste("Ratio adjustment for labels on left side of the ribbon plot.",
-                                 "Increase if the labels are cut-off,",
-                                 "decrease to decrease space between ribbon plot and cladogram"),
-                    default = 0.1, required = FALSE, type = "double")
+                                 "Use 'auto' (default) to size this area from the widest label,",
+                                 "or supply a non-negative numeric value to override it."),
+                    default = "auto", required = FALSE)
 parser$add_argument("--right-ratio",
                     help = paste("Ratio adjustment for space on the right side of the ribbon plot.",
                                  "Increase if the labels on the right are cut-off,",
@@ -179,6 +179,44 @@ format_genome_size <- function(bp) {
     bp >= 1e3 ~ paste0(sprintf("%.1f", bp / 1e3), " kbp"),
     TRUE      ~ paste0(bp, " bp")
   )
+}
+
+# Estimate the data-space margin needed for the bin labels.  The labels are
+# rendered in physical units, whereas --ratio is expressed relative to the
+# genomic x span, so convert the measured label width to a fraction of the
+# ribbon panel.  ggarrange assigns 10/11 of the combined width to this panel
+# when a tree is present.
+get_auto_label_ratio <- function(labels, plot_width_cm, has_tree, padding_cm = 0.25) {
+  labels <- unique(as.character(labels[!is.na(labels)]))
+  if (length(labels) == 0) {
+    return(0)
+  }
+
+  widest_label_cm <- max(vapply(labels, function(label) {
+    grid::convertWidth(
+      grid::grobWidth(grid::textGrob(
+        label,
+        # geom_bin_label() uses mm for its size argument; grid uses points.
+        gp = grid::gpar(fontsize = 6 * (72.27 / 25.4), fontface = "italic")
+      )),
+      unitTo = "cm", valueOnly = TRUE
+    )
+  }, numeric(1)))
+  print(widest_label_cm)
+  ribbon_width_cm <- plot_width_cm * if (has_tree) 10 / 11 else 1
+  print(ribbon_width_cm)
+  ribbon_width_cm <- ribbon_width_cm * (1 - args$right_ratio)
+  print(ribbon_width_cm)
+  # Leave room for the plot's own left/right margins as well as the label.
+  usable_width_cm <- ribbon_width_cm - 2.5
+  required_fraction <- (widest_label_cm + padding_cm) / usable_width_cm
+
+  if (required_fraction >= 1) {
+    stop("Cannot automatically fit bin labels: the widest label is wider than the ribbon panel.")
+  }
+
+  # A ratio r reserves r / (1 + r) of the panel for the left margin.
+  required_fraction / (1 - required_fraction)
 }
 
 # Return dataframe with bin annotations
@@ -390,7 +428,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
                                   size = 5, hjust = 1, fontface = "bold")
   }
   xmax <- ggplot_build(plot)$layout$panel_params[[1]]$x.range[[2]]
-  plot <- plot + xlim(0 - xmax * args$ratio, NA)
+  plot <- plot + xlim(0 - xmax * left_ratio, NA)
 
   if (is.data.frame(centromeres)) {
     plot <- plot + geom_feat(data = feats(centromeres), position = "identity",
@@ -507,6 +545,21 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
 #############################
 # Prepare plots
 #############################
+
+ratio_option <- trimws(tolower(as.character(args$ratio)))
+if (identical(ratio_option, "auto")) {
+  left_ratio <- get_auto_label_ratio(
+    sequences$bin_id,
+    plot_width_cm = args$width,
+    has_tree = !is.null(args$tree)
+  )
+  log_message("Using automatically estimated left label ratio:", sprintf("%.4f", left_ratio))
+} else {
+  left_ratio <- suppressWarnings(as.numeric(ratio_option))
+  if (length(left_ratio) != 1 || is.na(left_ratio) || !is.finite(left_ratio) || left_ratio < 0) {
+    stop("--ratio must be 'auto' or a non-negative number.")
+  }
+}
 
 # Make the ribbon plot
 log_message("Generating ribbon plot...")

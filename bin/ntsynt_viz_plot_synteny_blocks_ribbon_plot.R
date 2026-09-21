@@ -208,7 +208,7 @@ get_auto_label_ratio <- function(labels, plot_width_cm, has_tree, padding_cm = 0
   ribbon_width_cm <- ribbon_width_cm * (1 - args$right_ratio)
   print(ribbon_width_cm)
   # Leave room for the plot's own left/right margins as well as the label.
-  usable_width_cm <- ribbon_width_cm - 2.5
+  usable_width_cm <- ribbon_width_cm - 2.75
   required_fraction <- (widest_label_cm + padding_cm) / usable_width_cm
 
   if (required_fraction >= 1) {

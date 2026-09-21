@@ -125,7 +125,7 @@ def main():
         "--ribbon_adjust",
         help="Ratio for adjusting spacing beside ribbon plot. "
         "Increase if ribbon plot labels are cut off, and decrease to reduce  "
-        "the white space to the left of the ribbon plot [0.1]",
+        "the white space to the left of the ribbon plot. By default, automatically estimated [auto]",
         default="auto", type=str, required=False
     )
     execution_group.add_argument("-f", "--force", help="Force a re-run of the entire pipeline", action="store_true")

@@ -213,7 +213,10 @@ get_auto_label_ratio <- function(labels, plot_width_cm, has_tree, padding_cm = 0
   }
 
   # A ratio r reserves r / (1 + r) of the panel for the left margin.
-  required_fraction / (1 - required_fraction)
+  tmp_ratio <- required_fraction / (1 - required_fraction)
+
+  # Ratio should be at least 0.05
+  max(tmp_ratio, 0.05)
 }
 
 # Return dataframe with bin annotations

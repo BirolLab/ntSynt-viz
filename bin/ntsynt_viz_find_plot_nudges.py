@@ -52,6 +52,11 @@ def make_haplotype_nudges(haplotypes_file, orders_dict, nudge):
     with open(haplotypes_file, 'r', encoding="utf-8") as fin:
         for line in fin:
             hap1, hap2 = line.strip().split("\t")
+            if hap1 not in orders_dict or hap2 not in orders_dict:
+                print(f"Warning - one or both of {hap1}, {hap2} not found "
+                      "- check your haplotypes TSV and name_conversions TSV files.",
+                      file=sys.stderr, flush=True)
+                continue
             index1, index2 = orders_dict[hap1].index, orders_dict[hap2].index
             if abs(index1 - index2) > 1:
                 print(f"Warning - assembly {hap1} and {hap2} are not consecutive, will not be nudged",

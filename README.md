@@ -131,7 +131,7 @@ output arguments:
   --no-arrow            Only used with --normalize; do not draw arrows indicating reverse-complementation
   --ribbon_adjust RIBBON_ADJUST
                         Ratio for adjusting spacing beside ribbon plot. Increase if ribbon plot labels are cut off, and decrease to reduce the white space to
-                        the left of the ribbon plot [0.1]
+                        the left of the ribbon plot. By default, automatically estimated [auto]
 
 execution arguments:
   -f, --force           Force a re-run of the entire pipeline

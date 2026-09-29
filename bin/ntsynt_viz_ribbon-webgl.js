@@ -378,7 +378,6 @@ function splitIntoNonOverlappingLayers(ribbons) {
           runRibbons = [];
 
         }
-        //runPaths.push("M" + poly.getAttribute("points") + "Z");
         runRibbons.push({ index: index, d: "M" + poly.getAttribute("points") + "Z" });
       });
       flushRun();

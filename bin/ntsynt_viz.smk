@@ -37,6 +37,8 @@ interactive_picking_method = config.get(
     config.get("interactive_renderer", "webgl"),
 )
 
+html = config.get("html", True)
+
 if interactive_picking_method not in {"svg", "webgl"}:
     raise ValueError("interactive_picking_method must be one of: svg, webgl")
 
@@ -104,7 +106,7 @@ output_files = {
 
 rule all:
     input: output_files[format_img],
-            f"{prefix}_ribbon-plot.html",
+            f"{prefix}_ribbon-plot.html" if html else [],
             f"{prefix}_ribbon-plot_LLM-info.md",
 
 output_files_tree = {
@@ -115,7 +117,7 @@ output_files_tree = {
 
 rule gggenomes_ribbon_plot_tree:
     input: output_files_tree[format_img],
-            f"{prefix}_ribbon-plot_tree.html",
+            f"{prefix}_ribbon-plot_tree.html" if html else [],
             f"{prefix}_ribbon-plot_tree_LLM-info.md"
 
 rule renaming:
@@ -289,7 +291,7 @@ rule ribbon_plot:
     output:
         out_img = output_files[format_img] if format_img != "png" else [],
         out_png = output_files["png"],
-        out_html = f"{prefix}_ribbon-plot.html"
+        out_html = f"{prefix}_ribbon-plot.html" if html else []
     params:
         prefix = f"{prefix}_ribbon-plot",
         ratio = ribbon_ratio,
@@ -304,10 +306,13 @@ rule ribbon_plot:
         interactive_picking_method = f"--interactive-picking-method {interactive_picking_method}",
         html_title = f"--html-title={shlex.quote(str(html_title))}" if html_title is not None else "",
         html_image = f"--html-image={shlex.quote(str(html_image))}" if html_image is not None else "",
+        html_render = "--no-html" if not html else ""
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --ratio {params.ratio}" 
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
-        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
+        " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
+        " {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
+        " {params.html_render}"
 
 rule ribbon_plot_tree:
     input: 
@@ -322,7 +327,7 @@ rule ribbon_plot_tree:
     output:
         out_img = output_files_tree[format_img] if format_img != "png" else [],
         out_png = output_files_tree["png"],
-        out_html = f"{prefix}_ribbon-plot_tree.html"
+        out_html = f"{prefix}_ribbon-plot_tree.html" if html else []
     params:
         prefix = f"{prefix}_ribbon-plot_tree",
         ratio = ribbon_ratio,
@@ -337,10 +342,13 @@ rule ribbon_plot_tree:
         interactive_picking_method = f"--interactive-picking-method {interactive_picking_method}",
         html_title = f"--html-title={shlex.quote(str(html_title))}" if html_title is not None else "",
         html_image = f"--html-image={shlex.quote(str(html_image))}" if html_image is not None else "",
+        html_render = "--no-html" if not html else ""
     shell:
         "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
         " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
+        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} "
+        "{params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
+        " {params.html_render}"
 
 rule llm_instructions:
     input: 

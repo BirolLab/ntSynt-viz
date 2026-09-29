@@ -103,6 +103,7 @@ def main():
     output_group.add_argument("--html-image",
                               help="PNG, JPEG, GIF, SVG, or WebP image displayed next to the interactive HTML title",
                               required=False, type=str)
+    output_group.add_argument("--no-html", help="Do not output HTML ribbon plot", action="store_true")
     output_group.add_argument(
         "--interactive-picking-method", "--interactive-renderer",
         dest="interactive_picking_method",
@@ -164,7 +165,8 @@ def main():
             f"height={args.height} " \
             f"width={args.width} " \
             f"interactive_picking_method={args.interactive_picking_method} " \
-            f"min_seq_length={args.seq_length} "
+            f"min_seq_length={args.seq_length} " \
+            f"html={True if not args.no_html else False} " 
 
     if args.html_title:
         cmd += f"html_title={shlex.quote(args.html_title)} "

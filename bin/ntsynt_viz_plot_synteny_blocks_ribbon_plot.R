@@ -404,7 +404,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   plot <- plot +
   geom_seq(aes(y = get_y_coord(haplotypes, .data$bin_id, .data$y),
                yend = get_y_coord(haplotypes, bin_id, .data$y)),
-               size = 2, colour = "darkgrey") + # draw contig/chromosome lines
+               linewidth = 2, colour = "darkgrey") + # draw contig/chromosome lines
   geom_feat(data = feats(painting), aes(colour = as.factor(colour_block),
                 y = get_y_coord(haplotypes, bin_id, .data$y),
                yend = get_y_coord(haplotypes, bin_id, .data$y)), position = "identity", linewidth = 2) +

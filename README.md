@@ -104,7 +104,7 @@ main plot formatting arguments:
                         the ordering must be compatible with the phylogenetic tree.
 
 block filtering arguments:
-  --indel INDEL         Indel size threshold [50000]
+  --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]
   --length LENGTH       Minimum synteny block length [100000]
   --seq_length SEQ_LENGTH
                         Minimum sequence length [500000]

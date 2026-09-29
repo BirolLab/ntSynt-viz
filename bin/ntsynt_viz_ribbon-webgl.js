@@ -341,7 +341,7 @@ function splitIntoNonOverlappingLayers(ribbons) {
       let runSignature = null;
       let runChrom = null;
       let runAttributes = null;
-      let runRibbons = [];   // was: let runPaths = [];
+      let runRibbons = [];
 
       function flushRun() {
         if (!runFirst || runRibbons.length === 0) return;

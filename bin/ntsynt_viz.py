@@ -166,7 +166,7 @@ def main():
             f"width={args.width} " \
             f"interactive_picking_method={args.interactive_picking_method} " \
             f"min_seq_length={args.seq_length} " \
-            f"html={True if not args.no_html else False} " 
+            f"html={bool(not args.no_html)} "
 
     if args.html_title:
         cmd += f"html_title={shlex.quote(args.html_title)} "

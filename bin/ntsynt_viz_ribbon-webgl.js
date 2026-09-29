@@ -288,6 +288,38 @@
       });
     });
 
+// Partition ribbons (same style) into layers with no x-overlap within a
+// band, so each layer can be one compound path without merging alpha or
+// cancelling winding. Uses conservative x-bounding intervals per band.
+function splitIntoNonOverlappingLayers(ribbons) {
+  const links = plotData.links;
+  const items = ribbons.map(function(r) {
+    const xs = [links.x1[r.index], links.x2[r.index],
+                links.x3[r.index], links.x4[r.index]];
+    return {
+      d: r.d,
+      key: links.y1[r.index] + ":" + links.y2[r.index],
+      minX: Math.min.apply(null, xs),
+      maxX: Math.max.apply(null, xs)
+    };
+  }).sort(function(a, b) { return a.minX - b.minX; });
+
+  const layers = [];
+  items.forEach(function(item) {
+    let layer = layers.find(function(l) {
+      const last = l.maxXByBand.get(item.key);
+      return last === undefined || last <= item.minX;
+    });
+    if (!layer) {
+      layer = { paths: [], maxXByBand: new Map() };
+      layers.push(layer);
+    }
+    layer.paths.push(item.d);
+    layer.maxXByBand.set(item.key, item.maxX);
+  });
+  return layers.map(function(l) { return l.paths; });
+}
+
     // Reduce the presentation DOM while preserving the original order of
     // differently styled ribbons. Each consecutive run with identical SVG
     // attributes becomes one compound path whose subpaths retain their borders.
@@ -309,23 +341,25 @@
       let runSignature = null;
       let runChrom = null;
       let runAttributes = null;
-      let runPaths = [];
+      let runRibbons = [];
 
       function flushRun() {
-        if (!runFirst || runPaths.length === 0) return;
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.classList.add("ntsynt-ribbon-presentation-path");
-        path.setAttribute("d", runPaths.join(""));
-        attributes.forEach(function(attribute, index) {
-          if (runAttributes[index] !== null) {
-            path.setAttribute(attribute, runAttributes[index]);
-          }
+        if (!runFirst || runRibbons.length === 0) return;
+        splitIntoNonOverlappingLayers(runRibbons).forEach(function(layerPaths) {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.classList.add("ntsynt-ribbon-presentation-path");
+          path.setAttribute("d", layerPaths.join(""));
+          attributes.forEach(function(attribute, index) {
+            if (runAttributes[index] !== null) {
+              path.setAttribute(attribute, runAttributes[index]);
+            }
+          });
+          path.dataset.ntsyntBaseStroke = path.getAttribute("stroke") || "none";
+          if (runChrom) path.setAttribute("data-ntsynt-chrom", runChrom);
+          path.style.pointerEvents = "none";
+          runParent.insertBefore(path, runFirst);
+          presentationPaths.push(path);
         });
-        path.dataset.ntsyntBaseStroke = path.getAttribute("stroke") || "none";
-        if (runChrom) path.setAttribute("data-ntsynt-chrom", runChrom);
-        path.style.pointerEvents = "none";
-        runParent.insertBefore(path, runFirst);
-        presentationPaths.push(path);
       }
 
       visibleRibbons.slice(0, plotData.links.block_id.length).forEach(function(poly, index) {
@@ -341,9 +375,10 @@
           runSignature = signature;
           runChrom = chrom;
           runAttributes = values;
-          runPaths = [];
+          runRibbons = [];
+
         }
-        runPaths.push("M" + poly.getAttribute("points") + "Z");
+        runRibbons.push({ index: index, d: "M" + poly.getAttribute("points") + "Z" });
       });
       flushRun();
       visibleRibbons.forEach(function(poly) { poly.remove(); });

@@ -251,7 +251,7 @@ get_block_coord_info <- function(link_data, max_genome_len, max_chrom_len) {
                               " ", 
                               stringr::str_pad(chrom, width = max_chrom_len, side="right", pad='\u00A0'),
                               ": ",
-                              format(start, big.mark=","), " – ",
+                              format(start, big.mark=","), " \u2013 ",
                               format(end,   big.mark=","), " bp (", strand, ")")) %>%
           pull(line) %>%
           paste(collapse = "\n")
@@ -657,7 +657,8 @@ if(args$no_html) {
   script_arg <- command_args[grep("--file=", command_args)]
   script_dir <- dirname(normalizePath(sub("--file=", "", script_arg)))
   js_template <- paste(
-    readLines(paste(script_dir, "/ntsynt_viz_ribbon-interactive.js", sep=""), warn = FALSE),
+    readLines(paste(script_dir, "/ntsynt_viz_ribbon-interactive.js", sep=""), warn = FALSE,
+              encoding = "UTF-8"),
     collapse = "\n"
   )
 
@@ -670,7 +671,8 @@ if(args$no_html) {
 
   if (args$interactive_picking_method == "webgl") {
     webgl_template <- paste(
-      readLines(paste(script_dir, "/ntsynt_viz_ribbon-webgl.js", sep=""), warn = FALSE),
+      readLines(paste(script_dir, "/ntsynt_viz_ribbon-webgl.js", sep=""), warn = FALSE,
+                encoding = "UTF-8"),
       collapse = "\n"
     )
     webgl_json <- serialize_webgl_data(webgl_data)
@@ -766,7 +768,7 @@ if(args$no_html) {
 
   html_file <- paste0(args$prefix, ".html")
   htmlwidgets::saveWidget(interactive_plot, html_file, selfcontained = TRUE, title = document_title)
-  html_content <- readLines(html_file, warn = FALSE)
+  html_content <- readLines(html_file, warn = FALSE, encoding = "UTF-8")
   head_close <- which(grepl("</head>", html_content))
   html_content <- append(html_content, css_override, after = head_close - 1)
   if (has_html_header) {
@@ -775,6 +777,6 @@ if(args$no_html) {
   }
   body_close <- which(grepl("</body>", html_content))
   html_content <- append(html_content, js_inject, after = body_close - 1)
-  writeLines(html_content, html_file)
+  writeLines(enc2utf8(html_content), html_file, useBytes = TRUE)
   log_message("Interactive HTML saved:", html_file)
 }

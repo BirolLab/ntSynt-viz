@@ -344,11 +344,15 @@ rule ribbon_plot_tree:
         html_image = f"--html-image={shlex.quote(str(html_image))}" if html_image is not None else "",
         html_render = "--no-html" if not html else ""
     shell:
-        "ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree}"
-        " --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width}"
-        " --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} "
-        "{params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
-        " {params.html_render}"
+        """
+        export LANG=
+        export LC_ALL=
+        ntsynt_viz_plot_synteny_blocks_ribbon_plot.R -s {input.sequences} -l {input.links} -p {params.prefix} --tree {input.tree} \
+         --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width} \
+         --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} \
+        {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image} \
+         {params.html_render}
+        """
 
 rule llm_instructions:
     input: 

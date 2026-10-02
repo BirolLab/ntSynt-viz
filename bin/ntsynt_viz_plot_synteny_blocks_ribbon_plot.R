@@ -448,7 +448,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   }
 
   if (is.data.frame(track)) {
-    plot <- plot + geom_coverage(data = feats(track), aes(z = track),
+    plot <- plot + geom_coverage(data = feats(track), aes(z = track_value),
                                 fill = "#716f6f", offset = 0.04)
   }
 

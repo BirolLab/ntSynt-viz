@@ -153,13 +153,15 @@ if (! is.null(args$haplotypes)) {
 }
 
 if (! is.null(args$centromeres)) {
-  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE)
+  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE) %>%
+    mutate(bin_id = str_replace_all(bin_id, "_", " "))
 } else {
   centromeres <- FALSE
 }
 
 if (! is.null(args$track)) {
-  track <- read.csv(args$track, sep = "\t", header = TRUE)
+  track <- read.csv(args$track, sep = "\t", header = TRUE) %>%
+    mutate(bin_id = str_replace_all(bin_id, "_", " "))
 } else {
   track <- FALSE
 }

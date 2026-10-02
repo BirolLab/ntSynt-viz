@@ -288,34 +288,43 @@
       });
     });
 
-// Partition ribbons (same style) into layers with no x-overlap within a
-// band, so each layer can be one compound path without merging alpha or
-// cancelling winding. Uses conservative x-bounding intervals per band.
+// Partition same-style ribbons into layers of mutually non-overlapping ribbons.
+// Two ribbons in the same band are disjoint if one lies left of the other at
+// BOTH the top and bottom edge (edges are straight lines). Twisted ribbons
+// (inversions) fall back to their full x bounding box.
 function splitIntoNonOverlappingLayers(ribbons) {
   const links = plotData.links;
   const items = ribbons.map(function(r) {
-    const xs = [links.x1[r.index], links.x2[r.index],
-                links.x3[r.index], links.x4[r.index]];
+    const i = r.index;
+    const x1 = links.x1[i], x2 = links.x2[i], x3 = links.x3[i], x4 = links.x4[i];
+    const twisted = (x1 - x2) * (x4 - x3) < 0;
+    const allMin = Math.min(x1, x2, x3, x4);
+    const allMax = Math.max(x1, x2, x3, x4);
     return {
       d: r.d,
-      key: links.y1[r.index] + ":" + links.y2[r.index],
-      minX: Math.min.apply(null, xs),
-      maxX: Math.max.apply(null, xs)
+      key: links.y1[i] + ":" + links.y2[i],
+      tMin: twisted ? allMin : Math.min(x1, x2),   // top edge
+      tMax: twisted ? allMax : Math.max(x1, x2),
+      bMin: twisted ? allMin : Math.min(x3, x4),   // bottom edge
+      bMax: twisted ? allMax : Math.max(x3, x4)
     };
-  }).sort(function(a, b) { return a.minX - b.minX; });
+  }).sort(function(a, b) { return a.tMin - b.tMin || a.bMin - b.bMin; });
 
   const layers = [];
   items.forEach(function(item) {
+    // Sorted by tMin, so checking only the last item of a layer in this band
+    // is enough: earlier items are already ordered before it on both edges.
     let layer = layers.find(function(l) {
-      const last = l.maxXByBand.get(item.key);
-      return last === undefined || last <= item.minX;
+      const last = l.lastByBand.get(item.key);
+      return last === undefined ||
+        (last.tMax <= item.tMin && last.bMax <= item.bMin);
     });
     if (!layer) {
-      layer = { paths: [], maxXByBand: new Map() };
+      layer = { paths: [], lastByBand: new Map() };
       layers.push(layer);
     }
     layer.paths.push(item.d);
-    layer.maxXByBand.set(item.key, item.maxX);
+    layer.lastByBand.set(item.key, item);
   });
   return layers.map(function(l) { return l.paths; });
 }

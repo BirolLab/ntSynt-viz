@@ -445,12 +445,14 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   plot <- plot + xlim(0 - xmax * left_ratio, NA)
 
   if (is.data.frame(centromeres)) {
-    plot <- plot + geom_feat(data = feats(centromeres), position = "identity",
-                             linewidth = 2, colour = "black")
+    plot <- plot + geom_feat(data = feats(centromeres),
+                            aes(y = get_y_coord(haplotypes, bin_id, .data$y),
+                                yend = get_y_coord(haplotypes, bin_id, .data$y)),
+                            position = "identity", linewidth = 2, colour = "black")
   }
 
   if (is.data.frame(track)) {
-    plot <- plot + geom_coverage(data = feats(track), aes(z = track_value),
+    plot <- plot + geom_coverage(data = feats(track), aes(y = get_y_coord(haplotypes, bin_id, .data$y), z = track_value, group = interaction(bin_id, seq_id, drop = TRUE)),
                                 fill = "#716f6f", offset = 0.04)
   }
 

@@ -2,11 +2,11 @@
 '''
 Use synteny block mappings to sort the sequences in the assemblies
 '''
+import sys
 import argparse
 import itertools
 from collections import namedtuple, defaultdict
 import intervaltree
-import sys
 
 SyntenyBlock = namedtuple("SyntenyBlock", ["id", "genome", "chrom", "start", "end", "strand", "num_mx", "reason"])
 MapRegion = namedtuple("MapRegion", ["chrom", "start", "end"])
@@ -140,11 +140,13 @@ def update_orders_with_user_input(order_filename, asm_seq_orders, target_genome_
             line = line.strip().split("\t")
             genome, ordered_chroms = line[0], line[1].split(" ")
             input_orders = {chrom: i for i, chrom in enumerate(ordered_chroms)}
-            
+
             # Consistency checking
             if genome not in asm_seq_orders and genome != target_genome:
-                print(f"ERROR: Unexpected genome name {genome}. Expected names: {asm_seq_orders.keys() | {target_genome}}\n" 
-                      f"Please check that the genome matches either the genome assembly file name or the name conversion",
+                print(f"ERROR: Unexpected genome name {genome}. "
+                      f"Expected names: {asm_seq_orders.keys() | {target_genome}}\n"
+                      f"Please check that the genome matches either the genome assembly"
+                      f" file name or the name conversion",
                       file=sys.stderr)
                 sys.exit(1)
             if genome != target_genome:
@@ -162,7 +164,7 @@ def update_orders_with_user_input(order_filename, asm_seq_orders, target_genome_
             else:
                 asm_seq_orders[genome] = input_orders
     return target_genome_dict
-            
+
 
 def main():
     "Sort the sequences based on tiles on the target assembly"
@@ -185,9 +187,10 @@ def main():
     asm_seq_orders = get_mapped_tiles(blocks_tree, args.fais, args.tile, asm_orders)
 
     target_genome_seqs = get_target_genome_seqs(args.fais[0], args.min_length)
-    
+
     if args.chrom_order:
-        target_genome_seqs = update_orders_with_user_input(args.chrom_order, asm_seq_orders, target_genome_seqs, asm_orders[0])
+        target_genome_seqs = update_orders_with_user_input(args.chrom_order, asm_seq_orders,
+                                                           target_genome_seqs, asm_orders[0])
 
     with open(args.lengths, 'r', encoding='utf-8') as fin, \
          open(f"{args.prefix}.sequence_lengths.sorted.tsv", 'w', encoding="utf-8") as output_lengths_gggenome, \

@@ -452,7 +452,9 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   }
 
   if (is.data.frame(track)) {
-    plot <- plot + geom_coverage(data = feats(track), aes(y = get_y_coord(haplotypes, bin_id, .data$y), z = track_value, group = interaction(bin_id, seq_id, drop = TRUE)),
+    plot <- plot + geom_coverage(data = feats(track), aes(y = get_y_coord(haplotypes, bin_id, .data$y),
+                                                          z = track_value,
+                                                          group = interaction(bin_id, seq_id, drop = TRUE)),
                                 fill = "#716f6f", offset = 0.04)
   }
 

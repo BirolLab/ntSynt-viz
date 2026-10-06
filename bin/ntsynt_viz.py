@@ -89,7 +89,8 @@ def main():
     main_formatting_group.add_argument("--chrom-order",
                                        help="Optional TSV file specifying the desired order of chromosomes in "
                                             "one or more genomes. If supplied, this will override synteny-based "
-                                            "chromosome ordering for the listed genomes. Expected format: genome\tspace-separated "
+                                            "chromosome ordering for the listed genomes. "
+                                            "Expected format: genome\tspace-separated "
                                             "list of chromosomes",
                                         required=False, type=str)
     output_group.add_argument("--prefix", help="Prefix for output files [ntSynt-viz_ribbon-plot]",

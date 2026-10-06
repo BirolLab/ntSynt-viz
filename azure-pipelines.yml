@@ -81,7 +81,7 @@ jobs:
       cd tests
       ntsynt_viz.py --blocks great-apes.ntSynt.synteny_blocks.tsv --fais fais.tsv  --name_conversion great-apes.name-conversions.tsv \
        --prefix great-apes_ribbon-plots_tree_chrom-order --ribbon_adjust 0.15 --scale 2e9 --order test_order.tsv --format png --force \
-       --target_genome Homo_sapiens --chrom-order example-chrom-orders.tsv
+       --target-genome Homo_sapiens --chrom-order example-chrom-orders.tsv
     displayName: Run Example 5 test (chrom orders) 
 
   - publish: tests/great-apes_ribbon-plots_ribbon-plot_tree.png

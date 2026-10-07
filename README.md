@@ -71,8 +71,9 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
                      [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--html-title HTML_TITLE]
-                     [--html-image HTML_IMAGE] [--no-html] [--annotate-genome-info] [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
+                     [--order ORDER] [--chrom-order CHROM_ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH]
+                     [--dpi DPI] [--html-title HTML_TITLE] [--html-image HTML_IMAGE] [--no-html] [--annotate-genome-info] [--optimize-ordering] [--no-arrow]
+                     [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
 
@@ -102,6 +103,8 @@ main plot formatting arguments:
                         File listing haplotype assembly names: TSV, maternal/paternal assembly file names separated by tabs.
   --order ORDER         Optional file specifying the order of genomes in the ribbon plot. If supplied, will override synteny distance-based ordering. If --tree supplied,
                         the ordering must be compatible with the phylogenetic tree.
+  --chrom-order CHROM_ORDER
+                        Optional TSV file specifying the desired order of chromosomes in one or more genomes. If supplied, this will override synteny-based chromosome ordering for the listed genomes. Expected format: genome space-separated list of chromosomes
 
 block filtering arguments:
   --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]

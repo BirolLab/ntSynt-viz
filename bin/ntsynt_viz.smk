@@ -29,6 +29,7 @@ keep = " ".join(config.get("keep", []))
 min_seq_length = config.get("min_seq_length", 500000)
 res = config.get("dpi", 300)
 orders = config.get("order", [])
+chrom_order = config.get("chrom_order", [])
 annotate_genome_info = config.get("annotate_genome_info", False)
 html_title = config.get("html_title", None)
 html_image = config.get("html_image", None)
@@ -267,12 +268,14 @@ rule chrom_sorting:
     output:
         sorted_seqs = f"{prefix}.sequence_lengths.sorted.tsv",
         colour_info = f"{prefix}.target_colours.tsv"
+    params:
+        chrom_orders = f"--chrom-order {chrom_order}" if chrom_order else ""
     run:
         if name_conversion:
             fais = sort_fais(input.fais, name_conversion, input.orders)
         else:
             fais = sort_fais_no_name_conversion(input.fais, input.orders)
-        shell(f"ntsynt_viz_sort_sequences.py --fai {fais} --blocks {input.blocks} --lengths {input.sequences} --prefix {prefix} --min-length {min_seq_length}")
+        shell(f"ntsynt_viz_sort_sequences.py --fai {fais} --blocks {input.blocks} --lengths {input.sequences} --prefix {prefix} --min-length {min_seq_length} {params.chrom_orders}")
 
 rule chrom_paint:
     input: links = rules.gggenomes_files.output.links

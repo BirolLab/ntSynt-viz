@@ -86,6 +86,13 @@ def main():
                                        "If --tree supplied, the ordering must be compatible "\
                                            "with the phylogenetic tree.",
                                        required=False, type=str)
+    main_formatting_group.add_argument("--chrom-order",
+                                       help="Optional TSV file specifying the desired order of chromosomes in "
+                                            "one or more genomes. If supplied, this will override synteny-based "
+                                            "chromosome ordering for the listed genomes. "
+                                            "Expected format: genome\tspace-separated "
+                                            "list of chromosomes",
+                                        required=False, type=str)
     output_group.add_argument("--prefix", help="Prefix for output files [ntSynt-viz_ribbon-plot]",
                               required=False, type=str, default="ntSynt-viz_ribbon-plot")
     output_group.add_argument("--format", help="Output format of plot [png]",
@@ -191,6 +198,8 @@ def main():
         cmd += f"dpi={args.dpi} "
     if args.order:
         cmd += f"order={args.order} "
+    if args.chrom_order:
+        cmd += f"chrom_order={args.chrom_order} "
     if args.annotate_genome_info:
         cmd += "annotate_genome_info=True "
     if args.optimize_ordering:

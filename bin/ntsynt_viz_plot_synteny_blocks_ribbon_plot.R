@@ -50,6 +50,8 @@ parser$add_argument("-p", "--prefix",
 parser$add_argument("--format", help = "Output format for image (png, pdf or svg)", required = FALSE,
                     default = "png", choices = c("png", "pdf", "svg"))
 parser$add_argument("--track", help = "Input custom track in bedgraph format", required = FALSE)
+parser$add_argument("--track-height", help = "Height of custom track (if specified) [0.75]", required = FALSE,
+                    default = 0.75, type = "double")
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
 parser$add_argument("--html-title", help = paste("Title displayed above the interactive HTML ribbon plot;",
@@ -455,7 +457,7 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
     plot <- plot + geom_coverage(data = feats(track), aes(y = get_y_coord(haplotypes, bin_id, .data$y),
                                                           z = track_value,
                                                           group = interaction(bin_id, seq_id, drop = TRUE)),
-                                fill = "#716f6f", offset = 0.04)
+                                fill = "#716f6f", offset = 0.04, height=args$track_height)
   }
 
   if (add_scale_bar) {

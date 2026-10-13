@@ -70,9 +70,10 @@ export PATH=/path/to/ntsynt-viz/github/ntSynt-viz/bin:$PATH
 ## Usage <a name=usage></a>
 ```
 usage: ntsynt_viz.py [-h] --blocks BLOCKS --fais FAIS [FAIS ...] [--name_conversion NAME_CONVERSION] [--tree TREE] [--target-genome TARGET_GENOME] [--normalize]
-                     [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--haplotypes HAPLOTYPES]
-                     [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE] [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--html-title HTML_TITLE]
-                     [--html-image HTML_IMAGE] [--no-html] [--annotate-genome-info] [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
+                     [--indel INDEL] [--length LENGTH] [--seq_length SEQ_LENGTH] [--keep KEEP [KEEP ...]] [--centromeres CENTROMERES] [--track TRACK]
+                     [--track-height TRACK_HEIGHT] [--haplotypes HAPLOTYPES] [--order ORDER] [--prefix PREFIX] [--format {png,pdf,svg}] [--scale SCALE]
+                     [--height HEIGHT] [--width WIDTH] [--dpi DPI] [--html-title HTML_TITLE] [--html-image HTML_IMAGE] [--no-html] [--annotate-genome-info]
+                     [--optimize-ordering] [--no-arrow] [--ribbon_adjust RIBBON_ADJUST] [-f] [-n] [-v]
 
 Visualizing multi-genome synteny
 
@@ -96,8 +97,13 @@ main plot formatting arguments:
                         other chromosomes normalized to it. If not specified, the top genome will be arbitrary.
   --normalize           Normalize strand of chromosomes relative to the target (top) genome in the ribbon plots
   --centromeres CENTROMERES
-                        TSV file with centromere positions. Must have the headers: bin_id,seq_id,start,end. bin_id must match the new names from --name_conversion or the
-                        genome names if --name_conversion is not specified. seq_id is the chromosome name.
+                        TSV file with centromere positions. Must have the headers: bin_id,seq_id,start,end. bin_id must match the new names from
+                        --name_conversion or the genome names if --name_conversion is not specified. seq_id is the chromosome name.
+  --track TRACK         Optional custom track (in bedgraph format) to add to ribbon plot. Must have the headers: bin_id,seq_id,start,end,track_value. bin_id
+                        must match the new names from --name_conversion or the genome names if --name_conversion is not specified. seq_id is the chromosome
+                        name.
+  --track-height TRACK_HEIGHT
+                        Height of custom track (if specified) [0.75]
   --haplotypes HAPLOTYPES
                         File listing haplotype assembly names: TSV, maternal/paternal assembly file names separated by tabs.
   --order ORDER         Optional file specifying the order of genomes in the ribbon plot. If supplied, will override synteny distance-based ordering. If --tree supplied,

@@ -49,6 +49,9 @@ parser$add_argument("-p", "--prefix",
                     default = "synteny_gggenomes_plot")
 parser$add_argument("--format", help = "Output format for image (png, pdf or svg)", required = FALSE,
                     default = "png", choices = c("png", "pdf", "svg"))
+parser$add_argument("--track", help = "Input custom track in bedgraph format", required = FALSE)
+parser$add_argument("--track-height", help = "Height of custom track (if specified) [0.75]", required = FALSE,
+                    default = 0.75, type = "double")
 parser$add_argument("--order", help = "TSV file with desired order of tip labels (only used if --tree specified).", required = FALSE)
 parser$add_argument("--dpi", help = "Output plot resolution - for PNG only (default 300)", default = 300, required = FALSE, type = "integer")
 parser$add_argument("--html-title", help = paste("Title displayed above the interactive HTML ribbon plot;",
@@ -152,9 +155,17 @@ if (! is.null(args$haplotypes)) {
 }
 
 if (! is.null(args$centromeres)) {
-  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE)
+  centromeres <- read.csv(args$centromeres, sep = "\t", header = TRUE) %>%
+    mutate(bin_id = str_replace_all(bin_id, "_", " "))
 } else {
   centromeres <- FALSE
+}
+
+if (! is.null(args$track)) {
+  track <- read.csv(args$track, sep = "\t", header = TRUE) %>%
+    mutate(bin_id = str_replace_all(bin_id, "_", " "))
+} else {
+  track <- FALSE
 }
 
 #############################
@@ -377,14 +388,18 @@ build_js_maps <- function(link_data, target_genome, block_coords) {
 # Make the ribbon plot - these layers can be fully customized as needed
 make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FALSE,
                       centromeres = FALSE, add_arrow = FALSE, haplotypes = FALSE,
-                      include_ribbon_hit_layer = TRUE) {
+                      include_ribbon_hit_layer = TRUE, custom_track = FALSE) {
   target_genome <- (sequences %>% head(1) %>% select(bin_id))[[1]]
   sequences_filt <- unique((sequences %>% filter(bin_id == target_genome))$seq_id)
   num_colours <- unique(colours_df$num_seqs)
   colours <- hue_pal()(num_colours)[colours_df$colour_index]
   
-  if (is.data.frame(centromeres)) {
+  if (is.data.frame(centromeres) && is.data.frame(track)) {
+    p <-  gggenomes(seqs = sequences, links = links, feats = list(painting, centromeres, track))
+  } else if (is.data.frame(centromeres)) {
     p <-  gggenomes(seqs = sequences, links = links, feats = list(painting, centromeres))
+  } else if (is.data.frame(track)) {
+    p <-  gggenomes(seqs = sequences, links = links, feats = list(painting, track))
   } else {
     p <-  gggenomes(seqs = sequences, links = links, feats = list(painting))
   }
@@ -432,8 +447,17 @@ make_plot <- function(links, sequences, painting, colours_df, add_scale_bar = FA
   plot <- plot + xlim(0 - xmax * left_ratio, NA)
 
   if (is.data.frame(centromeres)) {
-    plot <- plot + geom_feat(data = feats(centromeres), position = "identity",
-                             linewidth = 2, colour = "black")
+    plot <- plot + geom_feat(data = feats(centromeres),
+                            aes(y = get_y_coord(haplotypes, bin_id, .data$y),
+                                yend = get_y_coord(haplotypes, bin_id, .data$y)),
+                            position = "identity", linewidth = 2, colour = "black")
+  }
+
+  if (is.data.frame(track)) {
+    plot <- plot + geom_coverage(data = feats(track), aes(y = get_y_coord(haplotypes, bin_id, .data$y),
+                                                          z = track_value,
+                                                          group = interaction(bin_id, seq_id, drop = TRUE)),
+                                fill = "#716f6f", offset = 0.04, height=args$track_height)
   }
 
   if (add_scale_bar) {

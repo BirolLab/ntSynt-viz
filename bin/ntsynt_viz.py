@@ -76,6 +76,16 @@ def main():
                             "bin_id must match the new names from --name_conversion or "
                             "the genome names if --name_conversion is not specified. "\
                             "seq_id is the chromosome name.", required=False, type=str)
+    main_formatting_group.add_argument("--track",
+                                       help="Optional custom track (in bedgraph format) to add to ribbon plot. "
+                                           "Must have the headers: bin_id,seq_id,start,end,track_value. "
+                                            "bin_id must match the new names from --name_conversion or "
+                                            "the genome names if --name_conversion is not specified. "
+                                            "seq_id is the chromosome name.",
+                                       required=False, type=str)
+    main_formatting_group.add_argument("--track-height",
+                                       help="Height of custom track (if specified) [0.75]", required=False,
+                                       type=float, default=0.75)
     main_formatting_group.add_argument("--haplotypes", help="File listing haplotype assembly names: TSV, "
                         "maternal/paternal assembly file names separated by tabs.",
                         required=False, type=str)
@@ -184,6 +194,9 @@ def main():
         cmd += f"name_conversion={args.name_conversion} "
     if args.centromeres:
         cmd += f"centromeres={args.centromeres} "
+    if args.track:
+        cmd += f"track={args.track} "
+        cmd += f"track_height={args.track_height} "
     if args.normalize:
         cmd += "normalize=True "
     if args.no_arrow:

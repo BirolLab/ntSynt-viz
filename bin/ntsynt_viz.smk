@@ -16,6 +16,8 @@ ribbon_ratio = config.get("ribbon_ratio", "auto")
 cladogram_ratio = config.get("cladogram_adjust", 0.1)
 scale = config.get("scale", 1e9)
 centromeres = config.get("centromeres", None)
+track = config.get("track", None)
+track_height = config.get("track_height", 0.75)
 normalize = config.get("normalize", False)
 blocks_no_suffix = os.path.basename(synteny_blocks).removesuffix(".tsv")
 tree = config.get("tree", None)
@@ -300,6 +302,7 @@ rule ribbon_plot:
         ratio = ribbon_ratio,
         scale = scale,
         centromeres = f"--centromeres {centromeres}" if centromeres is not None else "",
+        track = f"--track {track} --track-height {track_height}" if track is not None else "",
         out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
@@ -315,7 +318,7 @@ rule ribbon_plot:
         " --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format} --height {params.height} --width {params.width}"
         " {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution}"
         " {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image}"
-        " {params.html_render}"
+        " {params.html_render} {params.track}"
 
 rule ribbon_plot_tree:
     input: 
@@ -336,6 +339,7 @@ rule ribbon_plot_tree:
         ratio = ribbon_ratio,
         scale = scale,
         centromeres = f"--centromeres {centromeres}" if centromeres is not None else "",
+        track = f"--track {track} --track-height {track_height}" if track is not None else "",
         out_img_format = format_img,
         height = plot_height, width = plot_width,
         arrow = "--no-arrow" if no_arrow else "",
@@ -352,7 +356,7 @@ rule ribbon_plot_tree:
          --ratio {params.ratio} --scale {params.scale} -c {input.colour_feats} --format {params.out_img_format}  --height {params.height} --width {params.width} \
          --order {input.orders} {params.centromeres} {params.arrow} {params.haplotypes} --colour_indices {input.colour_seqs} {params.resolution} \
         {params.annotate_genome_info} {params.interactive_picking_method} {params.html_title} {params.html_image} \
-         {params.html_render}
+         {params.html_render} {params.track}
         """
 
 rule llm_instructions:

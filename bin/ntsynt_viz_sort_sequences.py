@@ -2,6 +2,7 @@
 '''
 Use synteny block mappings to sort the sequences in the assemblies
 '''
+import sys
 import argparse
 import itertools
 from collections import namedtuple, defaultdict
@@ -128,6 +129,42 @@ def get_target_genome_seqs(fai_filename, min_length):
                 i += 1
     return target_genome_seqs
 
+def update_orders_with_user_input(order_filename, asm_seq_orders, target_genome_dict, target_genome):
+    """
+    Update the chromosome orders data structure using the TSV file provided by the user.
+    It may include orders for 1 or more genomes - ensure that it is complete (ie. includes all chromosomes expected)
+    """
+    input_orders = defaultdict(dict)
+    with open(order_filename, 'r', encoding="utf-8") as fin:
+        for line in fin:
+            line = line.strip().split("\t")
+            genome, ordered_chroms = line[0], line[1].split(" ")
+            input_orders = {chrom: i for i, chrom in enumerate(ordered_chroms)}
+
+            # Consistency checking
+            if genome not in asm_seq_orders and genome != target_genome:
+                print(f"ERROR: Unexpected genome name {genome}. "
+                      f"Expected names: {asm_seq_orders.keys() | {target_genome}}\n"
+                      f"Please check that the genome matches either the genome assembly"
+                      f" file name or the name conversion",
+                      file=sys.stderr)
+                sys.exit(1)
+            if genome != target_genome:
+                for chrom in asm_seq_orders[genome]:
+                    if chrom not in input_orders:
+                        print(f"ERROR: {chrom} was expected, but not found in input orders file {order_filename}.")
+                        sys.exit(1)
+            else:
+                for chrom in target_genome_dict:
+                    if chrom not in input_orders:
+                        print(f"ERROR: {chrom} was expected, but not found in input orders file {order_filename}.")
+                        sys.exit(1)
+            if genome == target_genome:
+                target_genome_dict = input_orders
+            else:
+                asm_seq_orders[genome] = input_orders
+    return target_genome_dict
+
 
 def main():
     "Sort the sequences based on tiles on the target assembly"
@@ -139,6 +176,8 @@ def main():
     parser.add_argument("--tile", help="Tile size in bp [1 Mbp]", default=1000000, type=int)
     parser.add_argument("--lengths", help="Sequences lengths gggenomes TSV", required=True, type=str)
     parser.add_argument("--min-length", help="Minimum sequence length", type=int, default=100000)
+    parser.add_argument("--chrom-order", help="User-specified TSV with chromosome orders for one or more assemblies"
+                                            "Expected format: assembly_name\tspace-separated list of chromosomes")
     parser.add_argument("--prefix", help="Output file prefix", required=True, type=str)
 
     args = parser.parse_args()
@@ -149,24 +188,33 @@ def main():
 
     target_genome_seqs = get_target_genome_seqs(args.fais[0], args.min_length)
 
+    if args.chrom_order:
+        target_genome_seqs = update_orders_with_user_input(args.chrom_order, asm_seq_orders,
+                                                           target_genome_seqs, asm_orders[0])
+
     with open(args.lengths, 'r', encoding='utf-8') as fin, \
          open(f"{args.prefix}.sequence_lengths.sorted.tsv", 'w', encoding="utf-8") as output_lengths_gggenome, \
          open(f"{args.prefix}.target_colours.tsv", 'w', encoding="utf-8") as output_colour_indices:
-        stored_lines = {} # asm -> stored_lines
+        stored_lines = defaultdict(list) # asm -> stored_lines
+        stored_target_lines = []
         for line in fin:
             asm_name, chrom, length, relative_ori = line.strip().split("\t")
             if asm_name == "bin_id":
                 output_lengths_gggenome.write(line)
                 output_colour_indices.write("chrom\tcolour_index\tnum_seqs\n")
-            elif asm_name == asm_orders[0]:
-                output_lengths_gggenome.write(line)
-                output_colour_indices.write(f"{chrom}\t{target_genome_seqs[chrom] + 1}\t{len(target_genome_seqs)}\n")
             else:
-                if asm_name not in stored_lines:
-                    stored_lines[asm_name] = []
-                stored_lines[asm_name].append((asm_name, chrom, length, relative_ori))
-                if chrom not in asm_seq_orders[asm_name]:
-                    asm_seq_orders[asm_name][chrom] = len(asm_seq_orders[asm_name])
+                if asm_name == asm_orders[0]:
+                    stored_target_lines.append((asm_name, chrom, length, relative_ori))
+                else:
+                    stored_lines[asm_name].append((asm_name, chrom, length, relative_ori))
+                    if chrom not in asm_seq_orders[asm_name]:
+                        asm_seq_orders[asm_name][chrom] = len(asm_seq_orders[asm_name])
+
+        for line in sorted(stored_target_lines, key=lambda x: target_genome_seqs[x[1]]):
+            chrom = line[1]
+            output_lengths_gggenome.write("\t".join(line) + "\n")
+            output_colour_indices.write(f"{chrom}\t{target_genome_seqs[chrom] + 1}\t{len(target_genome_seqs)}\n")
+
 
         for asm, lines_list in stored_lines.items():
             asm_orders_asm = asm_seq_orders[asm]

@@ -108,6 +108,8 @@ main plot formatting arguments:
                         File listing haplotype assembly names: TSV, maternal/paternal assembly file names separated by tabs.
   --order ORDER         Optional file specifying the order of genomes in the ribbon plot. If supplied, will override synteny distance-based ordering. If --tree supplied,
                         the ordering must be compatible with the phylogenetic tree.
+  --chrom-order CHROM_ORDER
+                        Optional TSV file specifying the desired order of chromosomes in one or more genomes. If supplied, this will override synteny-based chromosome ordering for the listed genomes. Expected format: genome space-separated list of chromosomes
 
 block filtering arguments:
   --indel INDEL         Indel size threshold (used in computing synteny-based distances) [50000]

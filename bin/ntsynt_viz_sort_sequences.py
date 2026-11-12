@@ -120,7 +120,8 @@ def get_mapped_tiles(tree, fai_filenames, tile, asm_orders, min_length):
         fai_num += 1
 
     all_asm_seq_orders = {asm: {chrom: i for chrom, i in seq_orders.items() \
-                            if fai_dict[asm].get(chrom, 0) >= min_length} for asm, seq_orders in all_asm_seq_orders.items()}
+                            if fai_dict[asm].get(chrom, 0) >= min_length} \
+                            for asm, seq_orders in all_asm_seq_orders.items()}
 
     return all_asm_seq_orders
 

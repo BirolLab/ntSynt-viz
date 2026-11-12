@@ -89,14 +89,15 @@ def get_chrom_orders(tile_list):
     seq_order = {chrom: i for i, chrom in enumerate(seq_order)}
     return seq_order
 
-def get_mapped_tiles(tree, fai_filenames, tile, asm_orders):
+def get_mapped_tiles(tree, fai_filenames, tile, asm_orders, min_length):
     "Get an ordered list of chrom, length per assembly using tiles over the target"
     all_asm_seq_orders = {} # asm -> chrom -> index
+
+    fai_dict = defaultdict(dict) # asm -> chrom -> length
+
     fai_num = 0
     for fai_filename in fai_filenames:
-        if fai_num >= len(asm_orders) - 1:
-            break
-        asm_base, asm_target = asm_orders[fai_num], asm_orders[fai_num + 1]
+        asm_base = asm_orders[fai_num]
         tiles = [] # [list of chromosome hits]
         stored_fai_lines = []
         with open(fai_filename, 'r', encoding="utf-8") as fin:
@@ -104,8 +105,12 @@ def get_mapped_tiles(tree, fai_filenames, tile, asm_orders):
                 chrom, length = line.strip().split("\t")[:2]
                 length = int(length)
                 stored_fai_lines.append((chrom, length))
+                fai_dict[asm_base][chrom] = length
                 if asm_base in all_asm_seq_orders and chrom not in all_asm_seq_orders[asm_base]:
                     all_asm_seq_orders[asm_base][chrom] = len(all_asm_seq_orders[asm_base])
+        if fai_num >= len(asm_orders) - 1:
+            break
+        asm_target = asm_orders[fai_num + 1]
         if asm_base in all_asm_seq_orders:
             stored_fai_lines = sorted(stored_fai_lines, key=lambda x: all_asm_seq_orders[asm_base][x[0]]) # pylint: disable=cell-var-from-loop
         for chrom, length in stored_fai_lines:
@@ -113,6 +118,10 @@ def get_mapped_tiles(tree, fai_filenames, tile, asm_orders):
 
         all_asm_seq_orders[asm_target] = get_chrom_orders(tiles)
         fai_num += 1
+
+    all_asm_seq_orders = {asm: {chrom: i for chrom, i in seq_orders.items() \
+                            if fai_dict[asm].get(chrom, 0) >= min_length} \
+                            for asm, seq_orders in all_asm_seq_orders.items()}
 
     return all_asm_seq_orders
 
@@ -159,6 +168,12 @@ def update_orders_with_user_input(order_filename, asm_seq_orders, target_genome_
                     if chrom not in input_orders:
                         print(f"ERROR: {chrom} was expected, but not found in input orders file {order_filename}.")
                         sys.exit(1)
+                input_orders = {
+                    chrom: i
+                    for i, chrom in enumerate(
+                        chrom for chrom in input_orders if chrom in target_genome_dict
+                    )
+                }
             if genome == target_genome:
                 target_genome_dict = input_orders
             else:
@@ -184,7 +199,7 @@ def main():
 
     blocks_tree, asm_orders = load_synteny_blocks(args.blocks)
 
-    asm_seq_orders = get_mapped_tiles(blocks_tree, args.fais, args.tile, asm_orders)
+    asm_seq_orders = get_mapped_tiles(blocks_tree, args.fais, args.tile, asm_orders, args.min_length)
 
     target_genome_seqs = get_target_genome_seqs(args.fais[0], args.min_length)
 
